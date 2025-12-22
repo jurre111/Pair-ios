@@ -91,7 +91,7 @@ jobs:
       - name: Install ldid
         run: |
           if [ `uname -s` = "Linux" ]; then
-            curl -sSL -o /usr/local/bin/ldid "${{ github.server_url }}/ProcursusTeam/ldid/releases/latest/download/ldid_linux_`uname -m`"
+            curl -sSL -o /usr/local/bin/ldid "https://github.com/ProcursusTeam/ldid/releases/latest/download/ldid_linux_`uname -m`"
             chmod +x /usr/local/bin/ldid
           elif [ `uname -s` = "Darwin" ]; then
             brew install ldid
