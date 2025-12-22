@@ -1,15 +1,20 @@
 import Foundation
 import SwiftUI
+import Combine
 
 class PairingViewModel: ObservableObject {
     @Published var status: String = "Searching for PCs..."
     @Published var showUSBAlert = false
     @Published var pairingFileSaved = false
 
-    private let serviceBrowser = ServiceBrowser()
+    var serviceBrowser = ServiceBrowser()
+    private var cancellables = Set<AnyCancellable>()
 
     init() {
         serviceBrowser.startBrowsing()
+        serviceBrowser.objectWillChange.sink { [weak self] in
+            self?.objectWillChange.send()
+        }.store(in: &cancellables)
     }
 
     func requestPairing(for pcName: String) {
