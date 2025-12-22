@@ -32,7 +32,8 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
         guard let addresses = sender.addresses else { return }
 
         // Prefer IPv4; fall back to IPv6 with proper formatting
-        if let bestURL = addresses.compactMap(makeURL(from:sender.port)).first {
+        let urls = addresses.compactMap { makeURL(from: $0, port: sender.port) }
+        if let bestURL = urls.first {
             print("Resolved \(sender.name) to \(bestURL)")
             discoveredPCs[sender.name] = bestURL
         }
