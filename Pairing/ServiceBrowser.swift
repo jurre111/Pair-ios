@@ -29,18 +29,38 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
 
     // NetServiceDelegate
     func netServiceDidResolveAddress(_ sender: NetService) {
-        if let addresses = sender.addresses, let firstAddress = addresses.first {
-            var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-            firstAddress.withUnsafeBytes { (ptr: UnsafeRawBufferPointer) in
-                let sockaddrPtr = ptr.baseAddress!.assumingMemoryBound(to: sockaddr.self)
-                if getnameinfo(sockaddrPtr, socklen_t(firstAddress.count), &hostname, socklen_t(hostname.count), nil, 0, NI_NUMERICHOST) == 0 {
-                    let ip = String(cString: hostname)
-                    print("Resolved \(sender.name) to \(ip):\(sender.port)")
-                    let url = URL(string: "http://\(ip):\(sender.port)")!
-                    discoveredPCs[sender.name] = url
-                }
-            }
+        guard let addresses = sender.addresses else { return }
+
+        // Prefer IPv4; fall back to IPv6 with proper formatting
+        if let bestURL = addresses.compactMap(makeURL(from:sender.port)).first {
+            print("Resolved \(sender.name) to \(bestURL)")
+            discoveredPCs[sender.name] = bestURL
         }
         services.append(sender)
+    }
+
+    private func makeURL(from data: Data, port: Int32) -> URL? {
+        return data.withUnsafeBytes { (ptr: UnsafeRawBufferPointer) -> URL? in
+            let sockaddrPtr = ptr.baseAddress!.assumingMemoryBound(to: sockaddr.self)
+            var hostBuffer = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+            let family = Int32(sockaddrPtr.pointee.sa_family)
+
+            if getnameinfo(sockaddrPtr, socklen_t(data.count), &hostBuffer, socklen_t(hostBuffer.count), nil, 0, NI_NUMERICHOST) != 0 {
+                return nil
+            }
+
+            var host = String(cString: hostBuffer)
+
+            // Strip scope ID for link-local IPv6 to avoid URL parsing issues
+            if let percentRange = host.range(of: "%") {
+                host.removeSubrange(percentRange.lowerBound..<host.endIndex)
+            }
+
+            if family == AF_INET6 {
+                host = "[\(host)]"
+            }
+
+            return URL(string: "http://\(host):\(port)")
+        }
     }
 }

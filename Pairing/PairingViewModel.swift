@@ -9,16 +9,12 @@ class PairingViewModel: ObservableObject {
     @Published var discoveredPCs: [String: URL] = [:]
     @Published var errorMessage: String?
     @Published var isSearchingForServices: Bool = true
-    @Published var udid: String = ""
 
     private let serviceBrowser = ServiceBrowser()
     private var manualPCs: [String: URL] = [:]
     private var cancellables = Set<AnyCancellable>()
 
     init() {
-        // Attempt to load saved UDID or default to empty
-        self.udid = UserDefaults.standard.string(forKey: "savedUDID") ?? ""
-        
         serviceBrowser.startBrowsing()
         serviceBrowser.$discoveredPCs
             .receive(on: DispatchQueue.main)
@@ -38,16 +34,7 @@ class PairingViewModel: ObservableObject {
         }
         
         let deviceName = UIDevice.current.name
-        let currentUDID = udid.trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        guard !currentUDID.isEmpty else {
-            status = "UDID Missing"
-            errorMessage = "Please enter your device UDID."
-            return
-        }
-        
-        // Save UDID for future use
-        UserDefaults.standard.set(currentUDID, forKey: "savedUDID")
+        let currentUDID = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
 
         let requestBody: [String: String] = [
             "udid": currentUDID,
