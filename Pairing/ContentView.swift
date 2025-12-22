@@ -57,7 +57,6 @@ struct ContentView: View {
                 // Manual IP entry
                 TextField("Enter PC IP (e.g. 192.168.1.100)", text: $manualIP)
                     .textFieldStyle(.roundedBorder)
-                    .keyboardType(.decimalPad)
                     .padding(.horizontal)
                 
                 Button("Add Manual PC") {
