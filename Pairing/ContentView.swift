@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var viewModel = PairingViewModel()
     @State private var selectedPC: String?
+    @State private var manualIP: String = ""
 
     var body: some View {
         NavigationView {
@@ -52,6 +53,21 @@ struct ContentView: View {
                     Text("Pairing file saved successfully!")
                         .foregroundColor(.green)
                 }
+                
+                // Manual IP entry
+                TextField("Enter PC IP (e.g. 192.168.1.100)", text: $manualIP)
+                    .textFieldStyle(.roundedBorder)
+                    .keyboardType(.decimalPad)
+                    .padding(.horizontal)
+                
+                Button("Add Manual PC") {
+                    if !manualIP.isEmpty {
+                        let url = URL(string: "http://\(manualIP):5000")!
+                        viewModel.serviceBrowser.discoveredPCs["Manual PC (\(manualIP))"] = url
+                        viewModel.objectWillChange.send()
+                    }
+                }
+                .buttonStyle(.bordered)
             }
             .padding()
             .alert("Connect USB", isPresented: $viewModel.showUSBAlert) {
