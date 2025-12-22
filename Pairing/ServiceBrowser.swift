@@ -32,7 +32,7 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
         guard let addresses = sender.addresses else { return }
 
         // Prefer IPv4; fall back to IPv6 with proper formatting
-        let urls = addresses.compactMap { makeURL(from: $0, port: sender.port) }
+        let urls = addresses.compactMap { makeURL(from: $0, port: Int(sender.port)) }
         if let bestURL = urls.first {
             print("Resolved \(sender.name) to \(bestURL)")
             discoveredPCs[sender.name] = bestURL
@@ -40,7 +40,7 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
         services.append(sender)
     }
 
-    private func makeURL(from data: Data, port: Int32) -> URL? {
+    private func makeURL(from data: Data, port: Int) -> URL? {
         return data.withUnsafeBytes { (ptr: UnsafeRawBufferPointer) -> URL? in
             let sockaddrPtr = ptr.baseAddress!.assumingMemoryBound(to: sockaddr.self)
             var hostBuffer = [CChar](repeating: 0, count: Int(NI_MAXHOST))
