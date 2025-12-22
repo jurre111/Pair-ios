@@ -12,9 +12,9 @@ class PairingViewModel: ObservableObject {
         serviceBrowser.startBrowsing()
     }
 
-    func requestPairing() {
-        guard let pcURL = serviceBrowser.discoveredPCs.first?.value else {
-            status = "No PC found"
+    func requestPairing(for pcName: String) {
+        guard let pcURL = serviceBrowser.discoveredPCs[pcName] else {
+            status = "PC not found"
             return
         }
 
@@ -28,6 +28,8 @@ class PairingViewModel: ObservableObject {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONSerialization.data(withJSONObject: requestBody)
 
+        status = "Requesting pairing from \(pcName)..."
+        
         URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 if let error = error {
@@ -39,19 +41,19 @@ class PairingViewModel: ObservableObject {
                     if httpResponse.statusCode == 200, let data = data {
                         // Assume it's the pairing file
                         self.savePairingFile(data: data, udid: udid)
-                        self.status = "Pairing file received and saved"
+                        self.status = "Pairing file received and saved from \(pcName)"
                         self.pairingFileSaved = true
                     } else if let data = data,
                               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                               let errorMsg = json["error"] as? String {
                         if errorMsg.contains("Failed to generate") {
                             self.showUSBAlert = true
-                            self.status = "Connect USB to PC for pairing"
+                            self.status = "Connect USB to \(pcName) for pairing"
                         } else {
                             self.status = "Error: \(errorMsg)"
                         }
                     } else {
-                        self.status = "Unknown response"
+                        self.status = "Unknown response from \(pcName)"
                     }
                 }
             }

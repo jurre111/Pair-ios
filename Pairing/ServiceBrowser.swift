@@ -8,7 +8,7 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
 
     func startBrowsing() {
         browser.delegate = self
-        browser.searchForServices(ofType: "_pairing._tcp.", inDomain: "local.")
+        browser.searchForServices(ofType: "_pairing._tcp.", inDomain: "")
     }
 
     func stopBrowsing() {
@@ -17,6 +17,7 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
 
     // NetServiceBrowserDelegate
     func netServiceBrowser(_ browser: NetServiceBrowser, didFind service: NetService, moreComing: Bool) {
+        print("Found service: \(service.name)")
         service.delegate = self
         service.resolve(withTimeout: 5.0)
     }
@@ -34,6 +35,7 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
                 let sockaddrPtr = ptr.baseAddress!.assumingMemoryBound(to: sockaddr.self)
                 if getnameinfo(sockaddrPtr, socklen_t(firstAddress.count), &hostname, socklen_t(hostname.count), nil, 0, NI_NUMERICHOST) == 0 {
                     let ip = String(cString: hostname)
+                    print("Resolved \(sender.name) to \(ip):\(sender.port)")
                     let url = URL(string: "http://\(ip):\(sender.port)")!
                     discoveredPCs[sender.name] = url
                 }
