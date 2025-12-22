@@ -14,12 +14,19 @@ struct ContentView: View {
                 Text(viewModel.status)
                     .multilineTextAlignment(.center)
                     .padding()
+
+                if let error = viewModel.errorMessage {
+                    Text(error)
+                        .foregroundColor(.red)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                }
                 
-                if !viewModel.serviceBrowser.discoveredPCs.isEmpty {
+                if !viewModel.discoveredPCs.isEmpty {
                     Text("Discovered PCs:")
                         .font(.headline)
                     
-                    List(viewModel.serviceBrowser.discoveredPCs.keys.sorted(), id: \.self) { name in
+                    List(viewModel.discoveredPCs.keys.sorted(), id: \.self) { name in
                         Button(action: {
                             selectedPC = name
                         }) {
@@ -53,17 +60,16 @@ struct ContentView: View {
                     Text("Pairing file saved successfully!")
                         .foregroundColor(.green)
                 }
-                
-                // Manual IP entry
+
                 TextField("Enter PC IP (e.g. 192.168.1.100)", text: $manualIP)
                     .textFieldStyle(.roundedBorder)
                     .padding(.horizontal)
-                
+                    .autocapitalization(.none)
+
                 Button("Add Manual PC") {
-                    if !manualIP.isEmpty {
-                        let url = URL(string: "http://\(manualIP):5000")!
-                        viewModel.serviceBrowser.discoveredPCs["Manual PC (\(manualIP))"] = url
-                        viewModel.objectWillChange.send()
+                    if let key = viewModel.addManualPC(ip: manualIP) {
+                        selectedPC = key
+                        manualIP = ""
                     }
                 }
                 .buttonStyle(.bordered)

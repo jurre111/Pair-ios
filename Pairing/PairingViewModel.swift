@@ -6,27 +6,38 @@ class PairingViewModel: ObservableObject {
     @Published var status: String = "Searching for PCs..."
     @Published var showUSBAlert = false
     @Published var pairingFileSaved = false
+    @Published var discoveredPCs: [String: URL] = [:]
+    @Published var errorMessage: String?
 
-    var serviceBrowser = ServiceBrowser()
+    private let serviceBrowser = ServiceBrowser()
+    private var manualPCs: [String: URL] = [:]
     private var cancellables = Set<AnyCancellable>()
 
     init() {
         serviceBrowser.startBrowsing()
-        serviceBrowser.objectWillChange.sink { [weak self] in
-            self?.objectWillChange.send()
-        }.store(in: &cancellables)
+        serviceBrowser.$discoveredPCs
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] autoPCs in
+                guard let self else { return }
+                self.discoveredPCs = autoPCs.merging(self.manualPCs) { (_, new) in new }
+            }
+            .store(in: &cancellables)
     }
 
     func requestPairing(for pcName: String) {
-        guard let pcURL = serviceBrowser.discoveredPCs[pcName] else {
+        guard let pcURL = discoveredPCs[pcName] else {
             status = "PC not found"
+            errorMessage = "No network service matches \(pcName)."
             return
         }
 
         let udid = UIDevice.current.identifierForVendor?.uuidString ?? "unknown"
         let requestBody = ["udid": udid]
-
-        guard let url = URL(string: "request_pairing", relativeTo: pcURL) else { return }
+        guard let url = URL(string: "request_pairing", relativeTo: pcURL) else {
+            status = "Invalid URL"
+            errorMessage = "Unable to build request URL."
+            return
+        }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -34,35 +45,66 @@ class PairingViewModel: ObservableObject {
         request.httpBody = try? JSONSerialization.data(withJSONObject: requestBody)
 
         status = "Requesting pairing from \(pcName)..."
-        
+        errorMessage = nil
         URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 if let error = error {
                     self.status = "Error: \(error.localizedDescription)"
+                    self.errorMessage = error.localizedDescription
                     return
                 }
 
-                if let httpResponse = response as? HTTPURLResponse {
-                    if httpResponse.statusCode == 200, let data = data {
-                        // Assume it's the pairing file
-                        self.savePairingFile(data: data, udid: udid)
-                        self.status = "Pairing file received and saved from \(pcName)"
-                        self.pairingFileSaved = true
-                    } else if let data = data,
-                              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                              let errorMsg = json["error"] as? String {
-                        if errorMsg.contains("Failed to generate") {
-                            self.showUSBAlert = true
-                            self.status = "Connect USB to \(pcName) for pairing"
-                        } else {
-                            self.status = "Error: \(errorMsg)"
-                        }
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    self.status = "Unexpected response"
+                    self.errorMessage = "Pairing server response was invalid."
+                    return
+                }
+
+                if httpResponse.statusCode == 200, let data = data {
+                    self.savePairingFile(data: data, udid: udid)
+                    self.status = "Pairing file received and saved from \(pcName)"
+                    self.pairingFileSaved = true
+                    self.errorMessage = nil
+                    return
+                }
+
+                if let data = data,
+                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let errorMsg = json["error"] as? String {
+                    if errorMsg.contains("Failed to generate") {
+                        self.showUSBAlert = true
+                        self.status = "Connect USB to \(pcName) for pairing"
+                        self.errorMessage = "USB pairing required."
                     } else {
-                        self.status = "Unknown response from \(pcName)"
+                        self.status = "Error while pairing"
+                        self.errorMessage = errorMsg
                     }
+                } else {
+                    self.status = "Unknown response from \(pcName)"
+                    self.errorMessage = "Server returned code \(httpResponse.statusCode)."
                 }
             }
         }.resume()
+    }
+
+    func addManualPC(ip: String) -> String? {
+        let trimmedIP = ip.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedIP.isEmpty else {
+            errorMessage = "Enter a valid IP address."
+            return nil
+        }
+
+        guard let url = URL(string: "http://\(trimmedIP):5000") else {
+            errorMessage = "Unable to parse IP address."
+            return nil
+        }
+
+        let key = "Manual PC (\(trimmedIP))"
+        manualPCs[key] = url
+        discoveredPCs = serviceBrowser.discoveredPCs.merging(manualPCs) { (_, new) in new }
+        status = "Added manual PC \(trimmedIP)"
+        errorMessage = nil
+        return key
     }
 
     private func savePairingFile(data: Data, udid: String) {
