@@ -52,6 +52,18 @@ struct ContentView: View {
                     .foregroundColor(.green)
                     .font(.footnote)
             }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Device UDID")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                TextField("Enter UDID (required)", text: $viewModel.udid)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(.body, design: .monospaced))
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+            }
+            .padding(.top, 8)
         }
         .padding()
         .frame(maxWidth: .infinity)

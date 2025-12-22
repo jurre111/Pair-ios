@@ -9,12 +9,16 @@ class PairingViewModel: ObservableObject {
     @Published var discoveredPCs: [String: URL] = [:]
     @Published var errorMessage: String?
     @Published var isSearchingForServices: Bool = true
+    @Published var udid: String = ""
 
     private let serviceBrowser = ServiceBrowser()
     private var manualPCs: [String: URL] = [:]
     private var cancellables = Set<AnyCancellable>()
 
     init() {
+        // Attempt to load saved UDID or default to empty
+        self.udid = UserDefaults.standard.string(forKey: "savedUDID") ?? ""
+        
         serviceBrowser.startBrowsing()
         serviceBrowser.$discoveredPCs
             .receive(on: DispatchQueue.main)
@@ -32,9 +36,25 @@ class PairingViewModel: ObservableObject {
             errorMessage = "No network service matches \(pcName)."
             return
         }
+        
+        let deviceName = UIDevice.current.name
+        let currentUDID = udid.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        guard !currentUDID.isEmpty else {
+            status = "UDID Missing"
+            errorMessage = "Please enter your device UDID."
+            return
+        }
+        
+        // Save UDID for future use
+        UserDefaults.standard.set(currentUDID, forKey: "savedUDID")
 
-        let udid = UIDevice.current.identifierForVendor?.uuidString ?? "unknown"
-        let requestBody = ["udid": udid]
+        let requestBody: [String: String] = [
+            "udid": currentUDID,
+            "request": "pairing_file",
+            "device_name": deviceName
+        ]
+        
         guard let url = URL(string: "request_pairing", relativeTo: pcURL) else {
             status = "Invalid URL"
             errorMessage = "Unable to build request URL."
@@ -63,7 +83,7 @@ class PairingViewModel: ObservableObject {
                 }
 
                 if httpResponse.statusCode == 200, let data = data {
-                    self.savePairingFile(data: data, udid: udid)
+                    self.savePairingFile(data: data, udid: currentUDID)
                     self.status = "Pairing file received and saved from \(pcName)"
                     self.pairingFileSaved = true
                     self.errorMessage = nil
