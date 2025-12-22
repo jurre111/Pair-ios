@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 
 class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, ObservableObject {
     private var browser = NetServiceBrowser()
@@ -29,10 +30,13 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
     func netServiceDidResolveAddress(_ sender: NetService) {
         if let addresses = sender.addresses, let firstAddress = addresses.first {
             var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-            if getnameinfo(firstAddress, socklen_t(firstAddress.count), &hostname, socklen_t(hostname.count), nil, 0, NI_NUMERICHOST) == 0 {
-                let ip = String(cString: hostname)
-                let url = URL(string: "http://\(ip):\(sender.port)")!
-                discoveredPCs[sender.name] = url
+            firstAddress.withUnsafeBytes { (ptr: UnsafeRawBufferPointer) in
+                let sockaddrPtr = ptr.baseAddress!.assumingMemoryBound(to: sockaddr.self)
+                if getnameinfo(sockaddrPtr, socklen_t(firstAddress.count), &hostname, socklen_t(hostname.count), nil, 0, NI_NUMERICHOST) == 0 {
+                    let ip = String(cString: hostname)
+                    let url = URL(string: "http://\(ip):\(sender.port)")!
+                    discoveredPCs[sender.name] = url
+                }
             }
         }
         services.append(sender)
