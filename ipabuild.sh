@@ -4,7 +4,7 @@ set -e
 
 cd "$(dirname "$0")"
 
-APPLICATION_NAME=app
+APPLICATION_NAME=Pairing
 
 echo "[*] $APPLICATION_NAME Build Script"
 
