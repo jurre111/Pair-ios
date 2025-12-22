@@ -8,6 +8,7 @@ class PairingViewModel: ObservableObject {
     @Published var pairingFileSaved = false
     @Published var discoveredPCs: [String: URL] = [:]
     @Published var errorMessage: String?
+    @Published var isSearchingForServices: Bool = true
 
     private let serviceBrowser = ServiceBrowser()
     private var manualPCs: [String: URL] = [:]
@@ -19,6 +20,7 @@ class PairingViewModel: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] autoPCs in
                 guard let self else { return }
+                self.isSearchingForServices = autoPCs.isEmpty && self.manualPCs.isEmpty
                 self.discoveredPCs = autoPCs.merging(self.manualPCs) { (_, new) in new }
             }
             .store(in: &cancellables)
@@ -94,7 +96,7 @@ class PairingViewModel: ObservableObject {
             return nil
         }
 
-        guard let url = URL(string: "http://\(trimmedIP):5000") else {
+        guard let url = Self.url(from: trimmedIP) else {
             errorMessage = "Unable to parse IP address."
             return nil
         }
@@ -102,9 +104,39 @@ class PairingViewModel: ObservableObject {
         let key = "Manual PC (\(trimmedIP))"
         manualPCs[key] = url
         discoveredPCs = serviceBrowser.discoveredPCs.merging(manualPCs) { (_, new) in new }
+        isSearchingForServices = serviceBrowser.discoveredPCs.isEmpty && manualPCs.isEmpty
         status = "Added manual PC \(trimmedIP)"
         errorMessage = nil
         return key
+    }
+
+    private static func url(from input: String) -> URL? {
+        var candidate = input
+        if !candidate.contains("://") {
+            candidate = "http://\(candidate)"
+        }
+
+        guard var components = URLComponents(string: candidate) else {
+            return nil
+        }
+
+        if components.scheme == nil {
+            components.scheme = "http"
+        }
+
+        if components.port == nil {
+            components.port = 5000
+        }
+
+        if components.host == nil || components.host?.isEmpty == true {
+            return nil
+        }
+
+        if components.path.isEmpty {
+            components.path = "/"
+        }
+
+        return components.url
     }
 
     private func savePairingFile(data: Data, udid: String) {
