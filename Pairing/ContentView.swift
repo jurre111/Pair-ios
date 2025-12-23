@@ -202,11 +202,11 @@ struct ContentView: View {
                         .font(.headline)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
+                .padding(.vertical, 8)
             }
             .buttonStyle(.borderedProminent)
             .tint(.blue)
-            .controlSize(.large)
+            .controlSize(.small)
             .padding()
             .background(.regularMaterial)
         }

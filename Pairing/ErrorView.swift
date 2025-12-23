@@ -60,10 +60,10 @@ struct ErrorView: View {
                     Text("Try Again")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
+                        .padding(.vertical, 8)
                 }
                 .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+                .controlSize(.small)
                 
                 Button {
                     onDismiss()

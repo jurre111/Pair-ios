@@ -131,37 +131,6 @@ struct SettingsView: View {
                         Label("USB Troubleshooting", systemImage: "bolt.fill")
                     }
                     .buttonStyle(.plain)
-                    Button {
-                        sidestoreStatus = nil
-                        sidestoreError = nil
-                        sidestoreWorking = true
-                        Task {
-                            do {
-                                let message = try await viewModel.installPairingIntoSideStore()
-                                sidestoreStatus = message
-                            } catch {
-                                sidestoreError = (error as? PairingError)?.errorDescription ?? error.localizedDescription
-                            }
-                            sidestoreWorking = false
-                        }
-                    } label: {
-                        HStack {
-                            if sidestoreWorking { ProgressView().scaleEffect(0.8) }
-                            Label("Replace in SideStore", systemImage: "square.and.arrow.down")
-                        }
-                    }
-                    .disabled(sidestoreWorking)
-                    .buttonStyle(.plain)
-                    if let sidestoreStatus = sidestoreStatus {
-                        Text(sidestoreStatus)
-                            .font(.footnote)
-                            .foregroundStyle(.green)
-                    }
-                    if let sidestoreError = sidestoreError {
-                        Text(sidestoreError)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
-                    }
                     Label("Need help? Contact your admin.", systemImage: "questionmark.circle")
                         .foregroundStyle(.secondary)
                 } header: {

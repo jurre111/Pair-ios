@@ -165,7 +165,9 @@ struct PCSelectionView: View {
                         .keyboardType(.URL)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
-                        .focused($isManualIPFocused)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(12)
                 .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 12))
@@ -183,7 +185,7 @@ struct PCSelectionView: View {
                     Text("Save & Select")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
+                        .padding(.vertical, 8)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.regular)

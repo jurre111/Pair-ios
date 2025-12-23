@@ -62,10 +62,10 @@ struct SuccessView: View {
                     Label("Share Pairing File", systemImage: "square.and.arrow.up")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
+                        .padding(.vertical, 8)
                 }
                 .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+                .controlSize(.small)
 
                 if let onInstallSideStore {
                     Button {
@@ -78,11 +78,11 @@ struct SuccessView: View {
                             Label("Send to SideStore", systemImage: "square.and.arrow.down")
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
+                        .padding(.vertical, 8)
                     }
                     .disabled(sidestoreWorking)
                     .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
+                    .controlSize(.small)
 
                     if let sidestoreStatus {
                         Text(sidestoreStatus)
@@ -102,7 +102,7 @@ struct SuccessView: View {
                     Text("Done")
                         .font(.body.weight(.medium))
                         .foregroundStyle(.secondary)
-                        .padding(.vertical, 14)
+                        .padding(.vertical, 10)
                 }
                 .buttonStyle(.plain)
             }

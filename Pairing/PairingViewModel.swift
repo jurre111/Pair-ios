@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import Combine
+import Network
 
 struct SavedPC: Codable, Identifiable, Equatable {
     let id: String
@@ -424,9 +425,31 @@ class PairingViewModel: ObservableObject {
 
     func isSavedPCAvailable(_ pc: SavedPC) -> Bool {
         if pc.isManual {
-            return manualPCs[pc.id] != nil
+            return isHostReachable(host: pc.address)
         }
         return discoveredPCs.contains { $0.displayAddress == pc.address || $0.id == pc.id || $0.name == pc.name }
+    }
+
+    private func isHostReachable(host: String) -> Bool {
+        guard let port = NWEndpoint.Port(rawValue: UInt16(Constants.defaultPort)) else { return false }
+        let conn = NWConnection(host: .init(host), port: port, using: .tcp)
+        let semaphore = DispatchSemaphore(value: 0)
+        var reachable = false
+        conn.stateUpdateHandler = { state in
+            switch state {
+            case .ready:
+                reachable = true
+                semaphore.signal()
+            case .failed, .cancelled:
+                semaphore.signal()
+            default:
+                break
+            }
+        }
+        conn.start(queue: .global())
+        _ = semaphore.wait(timeout: .now() + 1.0)
+        conn.cancel()
+        return reachable
     }
 
     private func persistSavedPCs() {
