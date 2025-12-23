@@ -15,10 +15,12 @@ class PairingViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var usbRetryRemaining = 0
     private var usbRetryTarget: (pcName: String, baseURL: URL, udid: String)?
+    private var hasStartedBrowsing = false
 
     init() {
         print("📱 PairingViewModel initialized")
-        serviceBrowser.startBrowsing()
+        
+        // Don't start browsing immediately - wait for user action to trigger permission
         serviceBrowser.$discoveredPCs
             .receive(on: DispatchQueue.main)
             .sink { [weak self] autoPCs in
@@ -34,12 +36,24 @@ class PairingViewModel: ObservableObject {
             }
             .store(in: &cancellables)
         
+        // Start discovery automatically but after a delay to ensure UI is loaded
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.startInitialDiscovery()
+        }
+    }
+    
+    private func startInitialDiscovery() {
+        guard !hasStartedBrowsing else { return }
+        hasStartedBrowsing = true
+        print("🚀 Starting initial discovery (this should trigger Local Network permission)")
+        serviceBrowser.startBrowsing()
+        
         // Stop searching indicator after 10 seconds
         DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
             guard let self = self else { return }
             if self.discoveredPCs.isEmpty {
                 self.isSearchingForServices = false
-                self.status = "No PCs found. Try manual entry below."
+                self.status = "No PCs found. Check Local Network permission in Settings."
             }
         }
     }
