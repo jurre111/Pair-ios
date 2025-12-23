@@ -59,7 +59,7 @@ class PairingViewModel: ObservableObject {
             DispatchQueue.main.async {
                 if let error = error {
                     self.status = "Error: \(error.localizedDescription)"
-                    self.errorMessage = error.localizedDescription
+                    self.errorMessage = "\(error.localizedDescription) — URL: \(url.absoluteString)"
                     return
                 }
 
@@ -90,7 +90,7 @@ class PairingViewModel: ObservableObject {
                     }
                 } else {
                     self.status = "Unknown response from \(pcName)"
-                    self.errorMessage = "Server returned code \(httpResponse.statusCode)."
+                    self.errorMessage = "Server returned code \(httpResponse.statusCode). URL: \(url.absoluteString)"
                 }
             }
         }.resume()

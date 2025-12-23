@@ -32,7 +32,10 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
         guard let addresses = sender.addresses else { return }
 
         // Prefer IPv4; fall back to IPv6 with proper formatting
-        let urls = addresses.compactMap { makeURL(from: $0, port: Int(sender.port)) }
+        let urls = addresses
+            .compactMap { makeURL(from: $0, port: Int(sender.port)) }
+            .sorted(by: preferIPv4)
+
         if let bestURL = urls.first {
             print("Resolved \(sender.name) to \(bestURL)")
             discoveredPCs[sender.name] = bestURL
@@ -63,5 +66,12 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
 
             return URL(string: "http://\(host):\(port)")
         }
+    }
+
+    private func preferIPv4(_ lhs: URL, _ rhs: URL) -> Bool {
+        let lhsIsV4 = lhs.host?.contains(":") == false
+        let rhsIsV4 = rhs.host?.contains(":") == false
+        if lhsIsV4 == rhsIsV4 { return true }
+        return lhsIsV4 && !rhsIsV4
     }
 }
