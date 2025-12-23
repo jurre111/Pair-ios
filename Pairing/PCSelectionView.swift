@@ -9,7 +9,7 @@ struct PCSelectionView: View {
     
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
+            VStack(spacing: 16) {
                 headerSection
                 pcListSection
                 manualEntrySection
@@ -69,7 +69,7 @@ struct PCSelectionView: View {
                 pcListCards
             }
         }
-        .padding()
+        .padding(12)
         .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
@@ -134,10 +134,10 @@ struct PCSelectionView: View {
     private var manualEntrySection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text("Manual Address")
                         .font(.headline)
-                    Text("Add a server by IP or hostname")
+                    Text("Enter IP or hostname")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -157,8 +157,8 @@ struct PCSelectionView: View {
                 }
                 .buttonStyle(.plain)
             }
-            .padding()
-            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
+            .padding(14)
+            .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
             
             if showManualEntry {
                 VStack(spacing: 12) {
@@ -189,13 +189,14 @@ struct PCSelectionView: View {
                         Text("Save & Select")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
+                            .padding(.vertical, 12)
                     }
                     .buttonStyle(.borderedProminent)
+                    .controlSize(.regular)
                     .disabled(manualIP.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
                 .padding(14)
-                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
+                .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }

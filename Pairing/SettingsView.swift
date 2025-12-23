@@ -56,12 +56,13 @@ struct SettingsView: View {
                                 .tint(.red)
                             }
                         }
-                    }
-                } header: {
-                    Text("Saved PCs")
-                } footer: {
+                                        let saved = viewModel.savedPCs
+                                        if saved.isEmpty {
+                                            Label("No saved PCs yet", systemImage: "tray")
+                                                .foregroundStyle(.secondary)
                     Text("Saved PCs show up here when they're available on your network.")
-                }
+                                            ForEach(saved) { pc in
+                                                let isAvailable = viewModel.isSavedPCAvailable(pc)
 
                 // Device Info Section
                 Section {
@@ -77,6 +78,13 @@ struct SettingsView: View {
                         Spacer()
                         Text(UIDevice.current.systemVersion)
                             .foregroundStyle(.secondary)
+                                                    }
+                                                    Text(isAvailable ? "Available" : "Offline")
+                                                        .font(.caption2.weight(.semibold))
+                                                        .padding(.horizontal, 6)
+                                                        .padding(.vertical, 4)
+                                                        .background((isAvailable ? Color.green.opacity(0.15) : Color.gray.opacity(0.12)), in: Capsule())
+                                                        .foregroundStyle(isAvailable ? Color.green : Color.secondary)
                     }
                 } header: {
                     Text("Device Information")

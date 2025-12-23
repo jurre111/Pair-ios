@@ -7,6 +7,9 @@ struct ContentView: View {
     @StateObject private var viewModel = PairingViewModel()
     @State private var showingShareSheet = false
     @State private var showingSettings = false
+    @State private var showingUSBTroubleshoot = false
+    @State private var usbPCName: String = ""
+    @State private var usbMessage: String? = nil
 
     var body: some View {
         Group {
@@ -66,9 +69,24 @@ struct ContentView: View {
                     }
                 }
             }
+            .fullScreenCover(isPresented: $showingUSBTroubleshoot) {
+                USBTroubleshootView(pcName: usbPCName, message: usbMessage) {
+                    showingUSBTroubleshoot = false
+                }
+            }
         }
         .onAppear {
             viewModel.loadSavedManualIPs()
+        }
+        .onChange(of: viewModel.state) { state in
+            switch state {
+            case .awaitingUSB(let pcName, let message):
+                usbPCName = pcName
+                usbMessage = message
+                showingUSBTroubleshoot = true
+            default:
+                showingUSBTroubleshoot = false
+            }
         }
     }
     
@@ -140,10 +158,10 @@ struct ContentView: View {
                         .font(.headline)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
+                .padding(.vertical, 12)
             }
             .buttonStyle(.borderedProminent)
-            .controlSize(.large)
+            .controlSize(.regular)
             .padding()
             .background(.regularMaterial)
         }

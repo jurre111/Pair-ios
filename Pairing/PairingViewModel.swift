@@ -374,6 +374,13 @@ class PairingViewModel: ObservableObject {
         }
     }
 
+    func isSavedPCAvailable(_ pc: SavedPC) -> Bool {
+        if pc.isManual {
+            return manualPCs[pc.id] != nil
+        }
+        return discoveredPCs.contains { $0.displayAddress == pc.address || $0.id == pc.id || $0.name == pc.name }
+    }
+
     private func persistSavedPCs() {
         if let data = try? JSONEncoder().encode(savedPCs) {
             UserDefaults.standard.set(data, forKey: Constants.StorageKeys.savedPCs)

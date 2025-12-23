@@ -21,6 +21,7 @@
 		4397F9762DCE000000000007 /* ConnectionProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4397F9772DCE000000000007 /* ConnectionProgressView.swift */; };
 		4397F9782DCE000000000008 /* SuccessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4397F9792DCE000000000008 /* SuccessView.swift */; };
 		4397F97A2DCE000000000009 /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4397F97B2DCE000000000009 /* ErrorView.swift */; };
+		4397F97C2DCE00000000000A /* USBTroubleshootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4397F97D2DCE00000000000A /* USBTroubleshootView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -39,6 +40,7 @@
 		4397F9772DCE000000000007 /* ConnectionProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionProgressView.swift; sourceTree = "<group>"; };
 		4397F9792DCE000000000008 /* SuccessView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuccessView.swift; sourceTree = "<group>"; };
 		4397F97B2DCE000000000009 /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
+		4397F97D2DCE00000000000A /* USBTroubleshootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = USBTroubleshootView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -79,6 +81,7 @@
 				4397F9772DCE000000000007 /* ConnectionProgressView.swift */,
 				4397F9792DCE000000000008 /* SuccessView.swift */,
 				4397F97B2DCE000000000009 /* ErrorView.swift */,
+				4397F97D2DCE00000000000A /* USBTroubleshootView.swift */,
 				4397F9582DCDDA0200090799 /* Assets.xcassets */,
 				4397F9662DCDDA0300090799 /* ServiceBrowser.swift */,
 				4397F9672DCDDA0300090799 /* PairingViewModel.swift */,
@@ -171,6 +174,7 @@
 				4397F9762DCE000000000007 /* ConnectionProgressView.swift in Sources */,
 				4397F9782DCE000000000008 /* SuccessView.swift in Sources */,
 				4397F97A2DCE000000000009 /* ErrorView.swift in Sources */,
+				4397F97C2DCE00000000000A /* USBTroubleshootView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
