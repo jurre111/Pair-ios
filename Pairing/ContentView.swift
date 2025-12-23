@@ -2,12 +2,9 @@ import SwiftUI
 import UIKit
 
 struct ContentView: View {
-    @AppStorage("isOnboardingComplete") private var isOnboardingComplete = false
-    @AppStorage("storedUDID") private var storedUDID = ""
+    @AppStorage(Constants.StorageKeys.isOnboardingComplete) private var isOnboardingComplete = false
     
     @StateObject private var viewModel = PairingViewModel()
-    @State private var selectedPC: String?
-    @State private var manualIP: String = ""
     @State private var showingShareSheet = false
     @State private var showingSettings = false
 
@@ -20,312 +17,136 @@ struct ContentView: View {
                         removal: .opacity.combined(with: .move(edge: .leading))
                     ))
             } else {
-                OnboardingView(
-                    isOnboardingComplete: $isOnboardingComplete,
-                    storedUDID: $storedUDID
-                )
-                .transition(.asymmetric(
-                    insertion: .opacity.combined(with: .move(edge: .leading)),
-                    removal: .opacity.combined(with: .move(edge: .trailing))
-                ))
+                OnboardingView(isOnboardingComplete: $isOnboardingComplete)
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .move(edge: .leading)),
+                        removal: .opacity.combined(with: .move(edge: .trailing))
+                    ))
             }
         }
         .animation(.spring(response: 0.5, dampingFraction: 0.8), value: isOnboardingComplete)
-        .onChange(of: storedUDID) { newValue in
-            viewModel.storedUDID = newValue
-        }
-        .onAppear {
-            viewModel.storedUDID = storedUDID
-        }
     }
     
+    @ViewBuilder
     private var mainContent: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
+                // Background
                 Color(.systemGroupedBackground)
                     .ignoresSafeArea()
-
-                ScrollView {
-                    VStack(spacing: 24) {
-                        statusHeader
-                        discoveredSection
-                        
-                        if viewModel.showDebugLogs {
-                            debugLogsSection
-                        }
-                        
-                        manualEntrySection
-                    }
-                    .padding()
-                }
+                
+                // Content based on state
+                stateBasedContent
             }
             .navigationTitle("Pairing")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        showingSettings = true
-                    } label: {
-                        Image(systemName: "gear")
+                if case .selectPC = viewModel.state {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button {
+                            showingSettings = true
+                        } label: {
+                            Image(systemName: "gear")
+                        }
                     }
-                }
-            }
-            .alert("Connect USB", isPresented: $viewModel.showUSBAlert) {
-                Button("OK") {}
-            } message: {
-                Text("Please plug in your iPhone to the PC via USB cable to finish pairing.")
-            }
-            .sheet(isPresented: $showingShareSheet) {
-                if let fileURL = viewModel.pairingFileURL {
-                    ShareSheet(activityItems: [fileURL])
                 }
             }
             .sheet(isPresented: $showingSettings) {
-                SettingsView(
-                    storedUDID: $storedUDID,
-                    isOnboardingComplete: $isOnboardingComplete
-                )
+                SettingsView(isOnboardingComplete: $isOnboardingComplete)
             }
-        }
-    }
-
-    private var statusHeader: some View {
-        VStack(spacing: 8) {
-            Text("iOS Pairing Client")
-                .font(.largeTitle.weight(.bold))
-
-            Text(viewModel.status)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .animation(.easeInOut(duration: 0.3), value: viewModel.status)
-
-            if let error = viewModel.errorMessage {
-                Text(error)
-                    .font(.footnote)
-                    .foregroundColor(.red)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
-            }
-
-            if viewModel.pairingFileSaved {
-                Label("Pairing file saved", systemImage: "checkmark.seal.fill")
-                    .foregroundColor(.green)
-                    .font(.footnote)
-                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
-            }
-
-            if viewModel.pairingFileURL != nil {
-                Button("Share pairing file…") {
-                    showingShareSheet = true
-                }
-                .font(.footnote)
-                .transition(.opacity)
-            }
-
-            Button(viewModel.showDebugLogs ? "Hide discovery logs" : "Show discovery logs") {
-                withAnimation(.easeInOut(duration: 0.25)) {
-                    viewModel.showDebugLogs.toggle()
-                }
-            }
-            .font(.footnote)
-        }
-        .padding()
-        .frame(maxWidth: .infinity)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18))
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.pairingFileSaved)
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.errorMessage)
-    }
-
-    private var discoveredSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Discovered PCs")
-                    .font(.headline)
-                Spacer()
-                Button("Rescan") {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        viewModel.refreshDiscovery()
-                    }
-                }
-                .buttonStyle(.borderless)
-                .font(.subheadline)
-                if viewModel.isSearchingForServices && viewModel.discoveredPCs.isEmpty {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                        .transition(.opacity)
-                }
-            }
-            .animation(.easeInOut(duration: 0.2), value: viewModel.isSearchingForServices)
-
-            if viewModel.discoveredPCs.isEmpty {
-                VStack(spacing: 6) {
-                    Text(viewModel.isSearchingForServices ? "Still scanning your network..." : "No PCs found yet.")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .animation(.easeInOut(duration: 0.3), value: viewModel.isSearchingForServices)
-
-                    Text("Ensure the PC companion app is running on the same Wi-Fi and advertising the pairing service.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                    
-                    Text("Note: Some networks block device discovery. Use Manual PC below if discovery doesn't work.")
-                        .font(.caption2)
-                        .foregroundColor(.orange)
-                        .multilineTextAlignment(.center)
-                        .padding(.top, 4)
-                    
-                    if !viewModel.isSearchingForServices && !viewModel.serviceBrowser.debugLogs.isEmpty {
-                        Button("Show Discovery Logs") {
-                            withAnimation(.easeInOut(duration: 0.25)) {
-                                viewModel.showDebugLogs = true
-                            }
+            .sheet(isPresented: $showingShareSheet) {
+                if case .success(let fileURL) = viewModel.state {
+                    ShareSheet(activityItems: [fileURL]) { completed in
+                        if completed {
+                            // Optionally reset after sharing
                         }
-                        .font(.caption)
-                        .padding(.top, 8)
-                        .transition(.opacity.combined(with: .move(edge: .bottom)))
                     }
                 }
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-                .transition(.opacity.combined(with: .scale(scale: 0.98)))
-            } else {
-                VStack(spacing: 10) {
-                    ForEach(viewModel.discoveredPCs.keys.sorted(), id: \.self) { name in
-                        Button {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                selectedPC = name
-                            }
-                        } label: {
-                            HStack(spacing: 12) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(name)
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(.primary)
-                                    Text(viewModel.discoveredPCs[name]?.host ?? "Pairing service")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-
-                                Spacer()
-
-                                if selectedPC == name {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.blue)
-                                        .transition(.scale.combined(with: .opacity))
-                                }
-                            }
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(selectedPC == name ? Color.blue.opacity(0.15) : Color(.systemBackground))
-                            )
-                            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedPC)
-                        }
-                        .buttonStyle(.plain)
-                        .transition(.asymmetric(
-                            insertion: .opacity.combined(with: .move(edge: .top)),
-                            removal: .opacity
-                        ))
-                    }
-                }
-                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.discoveredPCs.count)
-            }
-
-            Button(action: {
-                if let selected = selectedPC {
-                    viewModel.requestPairing(for: selected)
-                }
-            }) {
-                Text("Pair with Selected PC")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(selectedPC == nil || viewModel.pairingFileSaved)
-            .opacity(selectedPC == nil ? 0.5 : 1)
-        }
-        .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
-    }
-
-    private var manualEntrySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Manual PC")
-                .font(.headline)
-
-            Text("Paste the local IP address of your PC and an optional port (default 5000). Example: 192.168.2.10:5000")
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            HStack(spacing: 12) {
-                TextField("192.168.1.100 or 192.168.1.100:5000", text: $manualIP)
-                    .textFieldStyle(.roundedBorder)
-                    .autocapitalization(.none)
-
-                Button("Add") {
-                    if let key = viewModel.addManualPC(ip: manualIP) {
-                        selectedPC = key
-                        manualIP = ""
-                    }
-                }
-                .buttonStyle(.borderedProminent)
             }
         }
-        .padding()
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18))
+        .onAppear {
+            viewModel.loadSavedManualIPs()
+        }
     }
     
-    private var debugLogsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Discovery Logs")
-                    .font(.headline)
-                Spacer()
-                Button("Hide") {
-                    viewModel.showDebugLogs = false
+    @ViewBuilder
+    private var stateBasedContent: some View {
+        switch viewModel.state {
+        case .selectPC:
+            VStack(spacing: 0) {
+                PCSelectionView(viewModel: viewModel)
+                
+                // Connect button at bottom
+                if viewModel.canConnect {
+                    connectButton
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                .buttonStyle(.borderless)
-                .font(.caption)
             }
+            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: viewModel.canConnect)
             
-            if viewModel.serviceBrowser.debugLogs.isEmpty {
-                Text("No logs yet")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 4) {
-                        ForEach(viewModel.serviceBrowser.debugLogs, id: \.self) { log in
-                            Text(log)
-                                .font(.system(.caption, design: .monospaced))
-                                .foregroundColor(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
+        case .connecting(let pcName):
+            ConnectionProgressView(
+                pcName: pcName,
+                isAwaitingUSB: false,
+                usbMessage: nil,
+                onCancel: { viewModel.cancel() }
+            )
+            .transition(.opacity)
+            
+        case .awaitingUSB(let pcName, let message):
+            ConnectionProgressView(
+                pcName: pcName,
+                isAwaitingUSB: true,
+                usbMessage: message,
+                onCancel: { viewModel.cancel() }
+            )
+            .transition(.opacity)
+            
+        case .success(let fileURL):
+            SuccessView(
+                fileURL: fileURL,
+                onShare: { showingShareSheet = true },
+                onDone: { viewModel.reset() }
+            )
+            .transition(.opacity)
+            
+        case .error(let error):
+            ErrorView(
+                error: error,
+                onRetry: {
+                    viewModel.dismissError()
+                    if viewModel.selectedPC != nil {
+                        viewModel.connect()
                     }
-                }
-                .frame(maxHeight: 200)
-            }
+                },
+                onDismiss: { viewModel.dismissError() }
+            )
+            .transition(.opacity)
         }
-        .padding()
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18))
+    }
+    
+    private var connectButton: some View {
+        VStack(spacing: 0) {
+            Divider()
+            
+            Button {
+                viewModel.connect()
+            } label: {
+                HStack {
+                    Text("Connect to \(viewModel.selectedPC?.name ?? "PC")")
+                        .font(.headline)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .padding()
+            .background(.regularMaterial)
+        }
     }
 }
 
 #Preview {
     ContentView()
-}
-
-// Simple share sheet helper to export the pairing file
-struct ShareSheet: UIViewControllerRepresentable {
-    let activityItems: [Any]
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
-    }
-
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) { }
 }

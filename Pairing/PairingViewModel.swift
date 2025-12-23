@@ -2,251 +2,373 @@ import Foundation
 import SwiftUI
 import Combine
 
-class PairingViewModel: ObservableObject {
-    @Published var status: String = "Searching for PCs..."
-    @Published var showUSBAlert = false
-    @Published var pairingFileSaved = false
-    @Published var pairingFileURL: URL?
-    @Published var discoveredPCs: [String: URL] = [:]
-    @Published var errorMessage: String?
-    @Published var isSearchingForServices: Bool = true
-    @Published var showDebugLogs: Bool = false
+/// Represents the current state of the pairing flow
+enum PairingState: Equatable {
+    case selectPC
+    case connecting(pcName: String)
+    case awaitingUSB(pcName: String, message: String)
+    case success(fileURL: URL)
+    case error(PairingError)
     
-    /// The stored hardware UDID fetched during onboarding. This is passed in from ContentView's @AppStorage.
-    var storedUDID: String = ""
+    static func == (lhs: PairingState, rhs: PairingState) -> Bool {
+        switch (lhs, rhs) {
+        case (.selectPC, .selectPC):
+            return true
+        case (.connecting(let a), .connecting(let b)):
+            return a == b
+        case (.awaitingUSB(let a, let msgA), .awaitingUSB(let b, let msgB)):
+            return a == b && msgA == msgB
+        case (.success(let a), .success(let b)):
+            return a == b
+        case (.error, .error):
+            return true
+        default:
+            return false
+        }
+    }
+}
 
+/// Discovered PC model
+struct DiscoveredPC: Identifiable, Equatable {
+    let id: String
+    let name: String
+    let url: URL
+    let isManual: Bool
+    
+    var displayAddress: String {
+        url.host ?? "Unknown"
+    }
+}
+
+@MainActor
+class PairingViewModel: ObservableObject {
+    // MARK: - Published State
+    
+    @Published private(set) var state: PairingState = .selectPC
+    @Published private(set) var discoveredPCs: [DiscoveredPC] = []
+    @Published private(set) var isSearching: Bool = false
+    @Published var selectedPCId: String?
+    
+    // MARK: - Private Properties
+    
     let serviceBrowser = ServiceBrowser()
     private var manualPCs: [String: URL] = [:]
     private var cancellables = Set<AnyCancellable>()
-    private var usbRetryRemaining = 0
-    private var usbRetryTarget: (pcName: String, baseURL: URL, udid: String)?
+    private var usbPollTask: Task<Void, Never>?
     private var hasStartedBrowsing = false
-
+    
+    // MARK: - Computed Properties
+    
+    var selectedPC: DiscoveredPC? {
+        discoveredPCs.first { $0.id == selectedPCId }
+    }
+    
+    var canConnect: Bool {
+        selectedPCId != nil && state == .selectPC
+    }
+    
+    var currentError: PairingError? {
+        if case .error(let error) = state {
+            return error
+        }
+        return nil
+    }
+    
+    // MARK: - Initialization
+    
     init() {
-        print("📱 PairingViewModel initialized")
+        setupBindings()
         
-        // Don't start browsing immediately - wait for user action to trigger permission
-        serviceBrowser.$discoveredPCs
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] autoPCs in
-                guard let self else { return }
-                print("📡 Discovered PCs updated: \(autoPCs.count) found")
-                self.discoveredPCs = autoPCs.merging(self.manualPCs) { (_, new) in new }
-                
-                // Stop showing searching indicator after we find something
-                if !autoPCs.isEmpty {
-                    self.isSearchingForServices = false
-                    self.status = "Found \(autoPCs.count) PC(s)"
-                }
-            }
-            .store(in: &cancellables)
-        
-        // Start discovery automatically but after a delay to ensure UI is loaded
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.startInitialDiscovery()
+        // Start discovery after a brief delay for UI to load
+        Task {
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s
+            startDiscovery()
         }
     }
     
-    private func startInitialDiscovery() {
-        guard !hasStartedBrowsing else { return }
+    private func setupBindings() {
+        serviceBrowser.$discoveredPCs
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] autoPCs in
+                self?.updateDiscoveredPCs(autoPCs: autoPCs)
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func updateDiscoveredPCs(autoPCs: [String: URL]) {
+        var pcs: [DiscoveredPC] = []
+        
+        // Add discovered PCs
+        for (name, url) in autoPCs {
+            pcs.append(DiscoveredPC(id: name, name: name, url: url, isManual: false))
+        }
+        
+        // Add manual PCs
+        for (name, url) in manualPCs {
+            pcs.append(DiscoveredPC(id: name, name: name, url: url, isManual: true))
+        }
+        
+        // Sort by name
+        discoveredPCs = pcs.sorted { $0.name < $1.name }
+        
+        // Stop searching indicator when we find something
+        if !pcs.isEmpty {
+            isSearching = false
+        }
+    }
+    
+    // MARK: - Discovery
+    
+    func startDiscovery() {
+        guard !hasStartedBrowsing else {
+            refreshDiscovery()
+            return
+        }
         hasStartedBrowsing = true
-        print("🚀 Starting initial discovery (this should trigger Local Network permission)")
+        isSearching = true
         serviceBrowser.startBrowsing()
         
-        // Stop searching indicator after 10 seconds and update status
-        DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
-            guard let self = self else { return }
-            if self.discoveredPCs.isEmpty {
-                self.isSearchingForServices = false
-                if !self.serviceBrowser.hasPermission {
-                    self.status = "Discovery failed. Check permissions below."
-                    self.errorMessage = "Go to Settings → Pairing → Local Network and enable it"
-                    self.showDebugLogs = true
-                } else if self.serviceBrowser.searchFailed {
-                    self.status = "Network discovery unavailable"
-                    self.errorMessage = "Use Manual PC Entry below"
-                    self.showDebugLogs = true
-                } else {
-                    self.status = "No PCs found on this network"
-                    self.errorMessage = "Make sure the server is running and you're on the same WiFi"
-                    self.showDebugLogs = true
-                }
+        // Stop searching after timeout
+        Task {
+            try? await Task.sleep(nanoseconds: UInt64(Constants.discoveryTimeout * 1_000_000_000))
+            if discoveredPCs.isEmpty {
+                isSearching = false
             }
         }
     }
-
+    
     func refreshDiscovery() {
-        isSearchingForServices = true
+        isSearching = true
         serviceBrowser.startBrowsing()
+        
+        Task {
+            try? await Task.sleep(nanoseconds: UInt64(Constants.discoveryTimeout * 1_000_000_000))
+            isSearching = false
+        }
     }
-
-    func requestPairing(for pcName: String) {
-        guard let pcURL = discoveredPCs[pcName] else {
-            status = "PC not found"
-            errorMessage = "No network service matches \(pcName)."
+    
+    // MARK: - Manual PC Entry
+    
+    func addManualPC(ip: String) -> Bool {
+        let trimmedIP = ip.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedIP.isEmpty else { return false }
+        
+        guard let url = buildURL(from: trimmedIP) else {
+            state = .error(.invalidServerURL)
+            return false
+        }
+        
+        let key = trimmedIP
+        manualPCs[key] = url
+        updateDiscoveredPCs(autoPCs: serviceBrowser.discoveredPCs)
+        
+        // Auto-select the newly added PC
+        selectedPCId = key
+        
+        // Persist manual IPs
+        saveManualIPs()
+        
+        return true
+    }
+    
+    func removeManualPC(id: String) {
+        manualPCs.removeValue(forKey: id)
+        updateDiscoveredPCs(autoPCs: serviceBrowser.discoveredPCs)
+        if selectedPCId == id {
+            selectedPCId = nil
+        }
+        saveManualIPs()
+    }
+    
+    private func saveManualIPs() {
+        let ips = Array(manualPCs.keys)
+        UserDefaults.standard.set(ips, forKey: Constants.StorageKeys.savedManualIPs)
+    }
+    
+    func loadSavedManualIPs() {
+        guard let ips = UserDefaults.standard.array(forKey: Constants.StorageKeys.savedManualIPs) as? [String] else {
+            return
+        }
+        for ip in ips {
+            _ = addManualPC(ip: ip)
+        }
+    }
+    
+    // MARK: - Pairing
+    
+    func connect() {
+        guard let pc = selectedPC else {
+            state = .error(.noServerSelected)
             return
         }
         
+        state = .connecting(pcName: pc.name)
+        
+        Task {
+            await requestPairing(pc: pc)
+        }
+    }
+    
+    private func requestPairing(pc: DiscoveredPC) async {
         let deviceName = UIDevice.current.name
-        // Select UDID: use stored UDID if available, otherwise use identifierForVendor
-        let currentUDID = !storedUDID.isEmpty ? storedUDID : (UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString)
-
+        let udid = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
+        
         let requestBody: [String: String] = [
-            "udid": currentUDID,
+            "udid": udid,
             "request": "pairing_file",
             "device_name": deviceName
         ]
         
-        let url = pcURL.appendingPathComponent("request_pairing")
-
-        var request = URLRequest(url: url)
+        let url = pc.url.appendingPathComponent("request_pairing")
+        
+        var request = URLRequest(url: url, timeoutInterval: Constants.requestTimeout)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONSerialization.data(withJSONObject: requestBody)
-
-        status = "Requesting pairing from \(pcName)..."
-        errorMessage = nil
-        pairingFileSaved = false
-        pairingFileURL = nil
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    self.status = "Error: \(error.localizedDescription)"
-                    self.errorMessage = "\(error.localizedDescription) — URL: \(url.absoluteString)"
-                    return
-                }
-
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    self.status = "Unexpected response"
-                    self.errorMessage = "Pairing server response was invalid."
-                    return
-                }
-
-                if httpResponse.statusCode == 200, let data = data {
-                    let actualUDID = (response as? HTTPURLResponse)?.value(forHTTPHeaderField: "X-Device-UDID") ?? currentUDID
-                    self.savePairingFile(data: data, udid: actualUDID)
-                    self.status = "Pairing file received and saved from \(pcName)"
-                    self.pairingFileSaved = true
-                    self.errorMessage = nil
-                    return
-                }
-
-                // Handle JSON error payloads (e.g., USB required)
-                if let data = data,
-                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let errorMsg = json["error"] as? String {
-                    if httpResponse.statusCode == 503 || errorMsg.localizedCaseInsensitiveContains("USB") {
-                        self.showUSBAlert = true
-                        self.status = "Connect USB to \(pcName) for pairing"
-                        if let connected = json["connected_udids"] as? [String], !connected.isEmpty {
-                            self.errorMessage = "USB mismatch. Connected: \(connected.joined(separator: ", "))"
-                        } else {
-                            self.errorMessage = errorMsg
-                        }
-                        self.startUSBWait(pcName: pcName, udid: currentUDID, baseURL: pcURL)
-                    } else {
-                        self.status = "Error while pairing"
-                        self.errorMessage = errorMsg
-                    }
-                    return
-                }
-
-                self.status = "Unknown response from \(pcName)"
-                self.errorMessage = "Server returned code \(httpResponse.statusCode). URL: \(url.absoluteString)"
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                state = .error(.invalidResponse)
+                return
             }
-        }.resume()
-    }
-
-    func addManualPC(ip: String) -> String? {
-        let trimmedIP = ip.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedIP.isEmpty else {
-            errorMessage = "Enter a valid IP address."
-            return nil
+            
+            if httpResponse.statusCode == 200 {
+                let actualUDID = httpResponse.value(forHTTPHeaderField: "X-Device-UDID") ?? udid
+                if let fileURL = savePairingFile(data: data, udid: actualUDID) {
+                    triggerSuccessHaptic()
+                    state = .success(fileURL: fileURL)
+                } else {
+                    state = .error(.fileWriteFailed)
+                }
+                return
+            }
+            
+            // Handle error responses
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let errorMsg = json["error"] as? String {
+                if httpResponse.statusCode == 503 || errorMsg.localizedCaseInsensitiveContains("USB") {
+                    state = .awaitingUSB(pcName: pc.name, message: errorMsg)
+                    startUSBPolling(pc: pc, udid: udid)
+                } else {
+                    state = .error(.serverError(errorMsg))
+                }
+            } else {
+                state = .error(.serverError("Server returned status \(httpResponse.statusCode)"))
+            }
+            
+        } catch is CancellationError {
+            state = .error(.cancelled)
+        } catch {
+            state = .error(.networkError(error))
         }
-
-        guard let url = Self.url(from: trimmedIP) else {
-            errorMessage = "Unable to parse IP address."
-            return nil
-        }
-
-        let key = "Manual PC (\(trimmedIP))"
-        manualPCs[key] = url
-        discoveredPCs = serviceBrowser.discoveredPCs.merging(manualPCs) { (_, new) in new }
-        isSearchingForServices = serviceBrowser.discoveredPCs.isEmpty && manualPCs.isEmpty
-        status = "Added manual PC \(trimmedIP)"
-        errorMessage = nil
-        return key
     }
-
-    private static func url(from input: String) -> URL? {
+    
+    // MARK: - USB Polling
+    
+    private func startUSBPolling(pc: DiscoveredPC, udid: String) {
+        usbPollTask?.cancel()
+        
+        usbPollTask = Task {
+            var attempts = 0
+            
+            while attempts < Constants.maxUSBPollAttempts && !Task.isCancelled {
+                attempts += 1
+                
+                try? await Task.sleep(nanoseconds: UInt64(Constants.usbPollInterval * 1_000_000_000))
+                
+                if Task.isCancelled { break }
+                
+                // Check USB status
+                let statusURL = pc.url.appendingPathComponent("usb_status")
+                let request = URLRequest(url: statusURL, cachePolicy: .reloadIgnoringLocalAndRemoteCacheData, timeoutInterval: 5)
+                
+                do {
+                    let (data, _) = try await URLSession.shared.data(for: request)
+                    
+                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let udids = json["connected_udids"] as? [String],
+                       !udids.isEmpty {
+                        // Device connected via USB, retry pairing
+                        await requestPairing(pc: pc)
+                        return
+                    }
+                } catch {
+                    // Ignore polling errors, continue trying
+                }
+            }
+            
+            // Polling timed out
+            if !Task.isCancelled {
+                state = .error(.usbTimeout)
+            }
+        }
+    }
+    
+    // MARK: - Actions
+    
+    func cancel() {
+        usbPollTask?.cancel()
+        usbPollTask = nil
+        state = .selectPC
+    }
+    
+    func reset() {
+        usbPollTask?.cancel()
+        usbPollTask = nil
+        state = .selectPC
+        selectedPCId = nil
+    }
+    
+    func dismissError() {
+        state = .selectPC
+    }
+    
+    // MARK: - Helpers
+    
+    private func buildURL(from input: String) -> URL? {
         var candidate = input
         if !candidate.contains("://") {
             candidate = "http://\(candidate)"
         }
-
+        
         guard var components = URLComponents(string: candidate) else {
             return nil
         }
-
+        
         if components.scheme == nil {
             components.scheme = "http"
         }
-
+        
         if components.port == nil {
-            components.port = 5000
+            components.port = Constants.defaultPort
         }
-
-        if components.host == nil || components.host?.isEmpty == true {
+        
+        guard components.host != nil && !components.host!.isEmpty else {
             return nil
         }
-
-        if components.path.isEmpty {
-            components.path = "/"
-        }
-
+        
         return components.url
     }
-
-    private func startUSBWait(pcName: String, udid: String, baseURL: URL) {
-        usbRetryRemaining = 10
-        usbRetryTarget = (pcName, baseURL, udid)
-        status = "Waiting for USB on \(pcName)..."
-        pollUSBAndRetry()
-    }
-
-    private func pollUSBAndRetry() {
-        guard usbRetryRemaining > 0, let target = usbRetryTarget else { return }
-        usbRetryRemaining -= 1
-
-        let statusURL = target.baseURL.appendingPathComponent("usb_status")
-        let req = URLRequest(url: statusURL, cachePolicy: .reloadIgnoringLocalAndRemoteCacheData, timeoutInterval: 3)
-
-        URLSession.shared.dataTask(with: req) { data, response, error in
-            DispatchQueue.main.async {
-                if let data = data,
-                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let udids = json["connected_udids"] as? [String],
-                   !udids.isEmpty {
-                    // If requested udid not present but some device is connected, allow retry to proceed (server can choose the connected one)
-                    self.usbRetryTarget = nil
-                    self.requestPairing(for: target.pcName)
-                    return
-                }
-
-                // Schedule another poll if attempts remain
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    self.pollUSBAndRetry()
-                }
-            }
-        }.resume()
-    }
-
-    private func savePairingFile(data: Data, udid: String) {
-        let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let fileURL = documentsURL.appendingPathComponent("\(udid).mobiledevicepairing")
-        try? data.write(to: fileURL)
-        DispatchQueue.main.async {
-            self.pairingFileURL = fileURL
+    
+    private func savePairingFile(data: Data, udid: String) -> URL? {
+        guard let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return nil
         }
+        
+        let fileURL = documentsURL.appendingPathComponent("\(udid).mobiledevicepairing")
+        
+        do {
+            try data.write(to: fileURL)
+            return fileURL
+        } catch {
+            return nil
+        }
+    }
+    
+    private func triggerSuccessHaptic() {
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
     }
 }

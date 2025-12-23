@@ -27,6 +27,12 @@
 		4397F9702DCDDA0300090799 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		4397F96A2DCE000000000001 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		4397F96B2DCE000000000002 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		4397F9712DCE000000000003 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		4397F9732DCE000000000004 /* PairingError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingError.swift; sourceTree = "<group>"; };
+		4397F9752DCE000000000005 /* PCSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PCSelectionView.swift; sourceTree = "<group>"; };
+		4397F9772DCE000000000006 /* ConnectionProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionProgressView.swift; sourceTree = "<group>"; };
+		4397F9792DCE000000000007 /* SuccessView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuccessView.swift; sourceTree = "<group>"; };
+		4397F97B2DCE000000000008 /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -63,6 +69,12 @@
 				4397F9562DCDDA0100090799 /* ContentView.swift */,
 				4397F96A2DCE000000000001 /* OnboardingView.swift */,
 				4397F96B2DCE000000000002 /* SettingsView.swift */,
+				4397F9712DCE000000000003 /* Constants.swift */,
+				4397F9732DCE000000000004 /* PairingError.swift */,
+				4397F9752DCE000000000005 /* PCSelectionView.swift */,
+				4397F9772DCE000000000006 /* ConnectionProgressView.swift */,
+				4397F9792DCE000000000007 /* SuccessView.swift */,
+				4397F97B2DCE000000000008 /* ErrorView.swift */,
 				4397F9582DCDDA0200090799 /* Assets.xcassets */,
 				4397F9662DCDDA0300090799 /* ServiceBrowser.swift */,
 				4397F9672DCDDA0300090799 /* PairingViewModel.swift */,
@@ -146,6 +158,12 @@
 				4397F96D2DCE000000000002 /* SettingsView.swift in Sources */,
 				4397F9682DCDDA0300090799 /* ServiceBrowser.swift in Sources */,
 				4397F9692DCDDA0300090799 /* PairingViewModel.swift in Sources */,
+				4397F9702DCE000000000003 /* Constants.swift in Sources */,
+				4397F9722DCE000000000004 /* PairingError.swift in Sources */,
+				4397F9742DCE000000000005 /* PCSelectionView.swift in Sources */,
+				4397F9762DCE000000000006 /* ConnectionProgressView.swift in Sources */,
+				4397F9782DCE000000000007 /* SuccessView.swift in Sources */,
+				4397F97A2DCE000000000008 /* ErrorView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
