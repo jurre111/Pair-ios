@@ -13,6 +13,7 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
         browser.delegate = self
         services.removeAll()
         discoveredPCs.removeAll()
+        browser.searchForServices(ofType: "_pairing._tcp.", inDomain: "")
         browser.searchForServices(ofType: "_pairing._tcp.", inDomain: "local.")
     }
 
@@ -25,6 +26,10 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
         print("Found service: \(service.name)")
         service.delegate = self
         service.resolve(withTimeout: 5.0)
+    }
+
+    func netServiceBrowser(_ browser: NetServiceBrowser, didNotSearch errorDict: [String : NSNumber]) {
+        print("Service browser failed: \(errorDict)")
     }
 
     func netServiceBrowser(_ browser: NetServiceBrowser, didRemove service: NetService, moreComing: Bool) {

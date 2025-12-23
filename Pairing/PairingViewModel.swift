@@ -73,7 +73,8 @@ class PairingViewModel: ObservableObject {
                 }
 
                 if httpResponse.statusCode == 200, let data = data {
-                    self.savePairingFile(data: data, udid: currentUDID)
+                    let actualUDID = (response as? HTTPURLResponse)?.value(forHTTPHeaderField: "X-Device-UDID") ?? currentUDID
+                    self.savePairingFile(data: data, udid: actualUDID)
                     self.status = "Pairing file received and saved from \(pcName)"
                     self.pairingFileSaved = true
                     self.errorMessage = nil
@@ -175,7 +176,8 @@ class PairingViewModel: ObservableObject {
                 if let data = data,
                    let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let udids = json["connected_udids"] as? [String],
-                   udids.contains(target.udid) {
+                   !udids.isEmpty {
+                    // If requested udid not present but some device is connected, allow retry to proceed (server can choose the connected one)
                     self.usbRetryTarget = nil
                     self.requestPairing(for: target.pcName)
                     return
