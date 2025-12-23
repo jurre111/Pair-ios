@@ -87,7 +87,11 @@ class PairingViewModel: ObservableObject {
                     if httpResponse.statusCode == 503 || errorMsg.localizedCaseInsensitiveContains("USB") {
                         self.showUSBAlert = true
                         self.status = "Connect USB to \(pcName) for pairing"
-                        self.errorMessage = errorMsg
+                        if let connected = json["connected_udids"] as? [String], !connected.isEmpty {
+                            self.errorMessage = "USB mismatch. Connected: \(connected.joined(separator: ", "))"
+                        } else {
+                            self.errorMessage = errorMsg
+                        }
                         self.startUSBWait(pcName: pcName, udid: currentUDID, baseURL: pcURL)
                     } else {
                         self.status = "Error while pairing"
