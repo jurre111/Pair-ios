@@ -71,6 +71,7 @@ class PairingViewModel: ObservableObject {
     private var usbPollTask: Task<Void, Never>?
     private var hasStartedBrowsing = false
     private var reachableHosts: Set<String> = []
+    private var reachabilityTask: Task<Void, Never>?
     
     // MARK: - Computed Properties
     
@@ -94,6 +95,7 @@ class PairingViewModel: ObservableObject {
     init() {
         setupBindings()
         loadSavedPCs()
+        startReachabilityLoop()
         
         // Start discovery after a brief delay for UI to load
         Task {
@@ -109,6 +111,16 @@ class PairingViewModel: ObservableObject {
                 self?.updateDiscoveredPCs(autoPCs: autoPCs)
             }
             .store(in: &cancellables)
+    }
+
+    private func startReachabilityLoop() {
+        reachabilityTask?.cancel()
+        reachabilityTask = Task.detached { [weak self] in
+            while !Task.isCancelled {
+                await self?.refreshReachabilityTick()
+                try? await Task.sleep(nanoseconds: 5_000_000_000) // 5s
+            }
+        }
     }
     
     private func updateDiscoveredPCs(autoPCs: [String: URL]) {
@@ -141,6 +153,11 @@ class PairingViewModel: ObservableObject {
                 }
             }
         }
+    }
+
+    @MainActor
+    private func refreshReachabilityTick() {
+        updateDiscoveredPCs(autoPCs: serviceBrowser.discoveredPCs)
     }
     
     // MARK: - Discovery
