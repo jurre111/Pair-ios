@@ -8,18 +8,34 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
 
     func startBrowsing() {
         print("🔍 Starting mDNS service discovery...")
+        print("   Current discoveredPCs count: \(discoveredPCs.count)")
         browser.stop()
         browser = NetServiceBrowser()
         browser.includesPeerToPeer = true
         browser.delegate = self
         services.removeAll()
-        discoveredPCs.removeAll()
+        
+        DispatchQueue.main.async {
+            self.discoveredPCs.removeAll()
+        }
         
         // Search in both default and local domains for maximum compatibility
         print("   Searching for: _pairing._tcp.")
+        print("   NOTE: If you haven't granted Local Network permission, this won't find anything.")
         browser.searchForServices(ofType: "_pairing._tcp.", inDomain: "")
-        browser.searchForServices(ofType: "_pairing._tcp.", inDomain: "local.")
         print("   Browser started, waiting for services...")
+        
+        // Add timeout to stop searching indicator after reasonable time
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
+            guard let self = self else { return }
+            if self.discoveredPCs.isEmpty {
+                print("⏱️ 10 second discovery timeout - no services found")
+                print("   This usually means:")
+                print("   1. Local Network permission was denied")
+                print("   2. No servers are advertising on the network")
+                print("   3. Router is blocking mDNS multicast")
+            }
+        }
     }
 
     func stopBrowsing() {
@@ -46,6 +62,7 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
     
     func netServiceBrowserWillSearch(_ browser: NetServiceBrowser) {
         print("▶️ Service browser will start searching")
+        print("   ✓ Local Network permission granted (or this callback wouldn't fire)")
     }
 
     func netServiceBrowser(_ browser: NetServiceBrowser, didRemove service: NetService, moreComing: Bool) {

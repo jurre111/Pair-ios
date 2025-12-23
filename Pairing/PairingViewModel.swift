@@ -17,15 +17,31 @@ class PairingViewModel: ObservableObject {
     private var usbRetryTarget: (pcName: String, baseURL: URL, udid: String)?
 
     init() {
+        print("📱 PairingViewModel initialized")
         serviceBrowser.startBrowsing()
         serviceBrowser.$discoveredPCs
             .receive(on: DispatchQueue.main)
             .sink { [weak self] autoPCs in
                 guard let self else { return }
-                self.isSearchingForServices = autoPCs.isEmpty && self.manualPCs.isEmpty
+                print("📡 Discovered PCs updated: \(autoPCs.count) found")
                 self.discoveredPCs = autoPCs.merging(self.manualPCs) { (_, new) in new }
+                
+                // Stop showing searching indicator after we find something
+                if !autoPCs.isEmpty {
+                    self.isSearchingForServices = false
+                    self.status = "Found \(autoPCs.count) PC(s)"
+                }
             }
             .store(in: &cancellables)
+        
+        // Stop searching indicator after 10 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
+            guard let self = self else { return }
+            if self.discoveredPCs.isEmpty {
+                self.isSearchingForServices = false
+                self.status = "No PCs found. Try manual entry below."
+            }
+        }
     }
 
     func refreshDiscovery() {
