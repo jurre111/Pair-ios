@@ -211,12 +211,10 @@ struct ContentView: View {
                         .font(.headline)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.blue)
-            .controlSize(.regular)
-            .padding()
+            .buttonStyle(PrimaryBlueButtonStyle())
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
             .background(.regularMaterial)
         }
     }

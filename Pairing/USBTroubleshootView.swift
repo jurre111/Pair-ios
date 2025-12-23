@@ -121,13 +121,9 @@ struct USBTroubleshootView: View {
     private var primaryButton: some View {
         Button(action: onClose) {
             Text(isFromSettings ? "Close" : "Back to Pairing")
-                .font(.headline)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
         }
-        .buttonStyle(.borderedProminent)
-        .tint(.blue)
-        .controlSize(.regular)
+        .buttonStyle(PrimaryBlueButtonStyle())
         .padding(.top, 8)
     }
     

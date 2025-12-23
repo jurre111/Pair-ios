@@ -76,12 +76,9 @@ struct OnboardingView: View {
                 }
             } label: {
                 Text("Get Started")
-                    .font(.headline)
-                    .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(Color.blue, in: RoundedRectangle(cornerRadius: 14))
             }
+            .buttonStyle(PrimaryBlueButtonStyle())
             .padding(.horizontal, 24)
             .padding(.bottom, 16)
             .opacity(showContent ? 1 : 0)

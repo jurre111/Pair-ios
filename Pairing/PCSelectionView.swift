@@ -187,13 +187,9 @@ struct PCSelectionView: View {
                     }
                 } label: {
                     Text("Save & Select")
-                        .font(.headline)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.regular)
-                .tint(.blue)
+                .buttonStyle(PrimaryBlueButtonStyle())
                 .disabled(manualIP.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .padding(14)

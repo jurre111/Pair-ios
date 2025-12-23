@@ -81,13 +81,9 @@ struct ConnectionProgressView: View {
                     onShowUSBHelp()
                 } label: {
                     Text("Need USB help?")
-                        .font(.body.weight(.semibold))
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.regular)
-                .tint(.blue)
+                .buttonStyle(PrimaryBlueButtonStyle())
                 .padding(.horizontal, 16)
                 .padding(.bottom, 12)
             }

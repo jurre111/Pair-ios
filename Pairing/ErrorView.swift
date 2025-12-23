@@ -58,12 +58,9 @@ struct ErrorView: View {
                     onRetry()
                 } label: {
                     Text("Try Again")
-                        .font(.headline)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
+                .buttonStyle(PrimaryBlueButtonStyle())
                 
                 Button {
                     onDismiss()
