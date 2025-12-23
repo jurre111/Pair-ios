@@ -127,7 +127,7 @@ class PairingViewModel: ObservableObject {
                 }
 
                 if httpResponse.statusCode == 200, let data = data {
-                    let actualUDID = (response as? HTTPURLResponse)?.value(forHTTPHeaderField: "X-Device-UDID") ?? currentUDID
+                    let actualUDID = (response as? HTTPURLResponse)?.value(forHTTPHeaderField: "X-Device-UDID") ?? self.storedUDID
                     self.savePairingFile(data: data, udid: actualUDID)
                     self.status = "Pairing file received and saved from \(pcName)"
                     self.pairingFileSaved = true
@@ -147,7 +147,7 @@ class PairingViewModel: ObservableObject {
                         } else {
                             self.errorMessage = errorMsg
                         }
-                        self.startUSBWait(pcName: pcName, udid: currentUDID, baseURL: pcURL)
+                        self.startUSBWait(pcName: pcName, udid: self.storedUDID, baseURL: pcURL)
                     } else {
                         self.status = "Error while pairing"
                         self.errorMessage = errorMsg
