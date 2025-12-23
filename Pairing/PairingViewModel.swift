@@ -72,7 +72,7 @@ class PairingViewModel: ObservableObject {
     }
     
     var canConnect: Bool {
-        selectedPCId != nil && state == .selectPC
+        selectedPC != nil && state == .selectPC
     }
     
     var currentError: PairingError? {
@@ -119,6 +119,11 @@ class PairingViewModel: ObservableObject {
         
         // Sort by name
         discoveredPCs = pcs.sorted { $0.name < $1.name }
+
+        if let selected = selectedPCId,
+           !discoveredPCs.contains(where: { $0.id == selected }) {
+            selectedPCId = nil
+        }
         
         // Stop searching indicator when we find something
         if !pcs.isEmpty {

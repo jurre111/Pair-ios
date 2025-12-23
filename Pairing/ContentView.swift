@@ -62,7 +62,12 @@ struct ContentView: View {
                         viewModel.reset()
                     },
                     onShowUSBHelp: {
-                        showingUSBTroubleshoot = true
+                        usbPCName = viewModel.selectedPC?.name ?? "your PC"
+                        usbMessage = "Follow these steps to finish pairing over USB."
+                        showingSettings = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                            showingUSBTroubleshoot = true
+                        }
                     }
                 )
             }
@@ -115,7 +120,11 @@ struct ContentView: View {
                 isAwaitingUSB: false,
                 usbMessage: nil,
                 onCancel: { viewModel.cancel() },
-                onShowUSBHelp: { showingUSBTroubleshoot = true }
+                onShowUSBHelp: {
+                    usbPCName = pcName
+                    usbMessage = "Connect via USB to continue."
+                    showingUSBTroubleshoot = true
+                }
             )
             .transition(.opacity)
             
@@ -125,7 +134,11 @@ struct ContentView: View {
                 isAwaitingUSB: true,
                 usbMessage: message,
                 onCancel: { viewModel.cancel() },
-                onShowUSBHelp: { showingUSBTroubleshoot = true }
+                onShowUSBHelp: {
+                    usbPCName = pcName
+                    usbMessage = message
+                    showingUSBTroubleshoot = true
+                }
             )
             .transition(.opacity)
             

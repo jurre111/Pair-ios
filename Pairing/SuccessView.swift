@@ -58,10 +58,10 @@ struct SuccessView: View {
                     Label("Share Pairing File", systemImage: "square.and.arrow.up")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
+                        .padding(.vertical, 12)
                 }
                 .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+                .controlSize(.regular)
                 
                 Button {
                     onDone()
