@@ -2,12 +2,35 @@ import SwiftUI
 import UIKit
 
 struct ContentView: View {
+    @AppStorage("isOnboardingComplete") private var isOnboardingComplete = false
+    @AppStorage("storedUDID") private var storedUDID = ""
+    
     @StateObject private var viewModel = PairingViewModel()
     @State private var selectedPC: String?
     @State private var manualIP: String = ""
     @State private var showingShareSheet = false
+    @State private var showingSettings = false
 
     var body: some View {
+        Group {
+            if isOnboardingComplete && !storedUDID.isEmpty {
+                mainContent
+            } else {
+                OnboardingView(
+                    isOnboardingComplete: $isOnboardingComplete,
+                    storedUDID: $storedUDID
+                )
+            }
+        }
+        .onChange(of: storedUDID) { _, newValue in
+            viewModel.storedUDID = newValue
+        }
+        .onAppear {
+            viewModel.storedUDID = storedUDID
+        }
+    }
+    
+    private var mainContent: some View {
         NavigationView {
             ZStack {
                 Color(.systemGroupedBackground)
@@ -28,6 +51,15 @@ struct ContentView: View {
                 }
             }
             .navigationTitle("Pairing")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showingSettings = true
+                    } label: {
+                        Image(systemName: "gear")
+                    }
+                }
+            }
             .alert("Connect USB", isPresented: $viewModel.showUSBAlert) {
                 Button("OK") {}
             } message: {
@@ -37,6 +69,12 @@ struct ContentView: View {
                 if let fileURL = viewModel.pairingFileURL {
                     ShareSheet(activityItems: [fileURL])
                 }
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView(
+                    storedUDID: $storedUDID,
+                    isOnboardingComplete: $isOnboardingComplete
+                )
             }
         }
     }

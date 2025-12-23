@@ -12,6 +12,8 @@
 		4397F9592DCDDA0200090799 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4397F9582DCDDA0200090799 /* Assets.xcassets */; };
 		4397F9682DCDDA0300090799 /* ServiceBrowser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4397F9662DCDDA0300090799 /* ServiceBrowser.swift */; };
 		4397F9692DCDDA0300090799 /* PairingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4397F9672DCDDA0300090799 /* PairingViewModel.swift */; };
+		4397F96C2DCE000000000001 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4397F96A2DCE000000000001 /* OnboardingView.swift */; };
+		4397F96D2DCE000000000002 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4397F96B2DCE000000000002 /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -21,6 +23,8 @@
 		4397F9582DCDDA0200090799 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		4397F9662DCDDA0300090799 /* ServiceBrowser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceBrowser.swift; sourceTree = "<group>"; };
 		4397F9672DCDDA0300090799 /* PairingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingViewModel.swift; sourceTree = "<group>"; };
+		4397F96A2DCE000000000001 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		4397F96B2DCE000000000002 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -55,6 +59,8 @@
 			children = (
 				4397F9542DCDDA0100090799 /* App.swift */,
 				4397F9562DCDDA0100090799 /* ContentView.swift */,
+				4397F96A2DCE000000000001 /* OnboardingView.swift */,
+				4397F96B2DCE000000000002 /* SettingsView.swift */,
 				4397F9582DCDDA0200090799 /* Assets.xcassets */,
 				4397F9662DCDDA0300090799 /* ServiceBrowser.swift */,
 				4397F9672DCDDA0300090799 /* PairingViewModel.swift */,
@@ -133,6 +139,8 @@
 			files = (
 				4397F9552DCDDA0100090799 /* App.swift in Sources */,
 				4397F9572DCDDA0100090799 /* ContentView.swift in Sources */,
+				4397F96C2DCE000000000001 /* OnboardingView.swift in Sources */,
+				4397F96D2DCE000000000002 /* SettingsView.swift in Sources */,
 				4397F9682DCDDA0300090799 /* ServiceBrowser.swift in Sources */,
 				4397F9692DCDDA0300090799 /* PairingViewModel.swift in Sources */,
 			);

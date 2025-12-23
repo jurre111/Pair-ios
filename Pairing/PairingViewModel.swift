@@ -11,6 +11,9 @@ class PairingViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var isSearchingForServices: Bool = true
     @Published var showDebugLogs: Bool = false
+    
+    /// The stored hardware UDID fetched during onboarding. This is passed in from ContentView's @AppStorage.
+    var storedUDID: String = ""
 
     let serviceBrowser = ServiceBrowser()
     private var manualPCs: [String: URL] = [:]
@@ -85,7 +88,13 @@ class PairingViewModel: ObservableObject {
         }
         
         let deviceName = UIDevice.current.name
-        let currentUDID = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
+        // Use the stored hardware UDID if available, otherwise fall back to identifierForVendor
+        let currentUDID: String
+        if !storedUDID.isEmpty {
+            currentUDID = storedUDID
+        } else {
+            currentUDID = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
+        }
 
         let requestBody: [String: String] = [
             "udid": currentUDID,
