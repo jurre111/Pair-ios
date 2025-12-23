@@ -136,13 +136,13 @@ struct OnboardingView: View {
             Text("Connect to PC")
                 .font(.largeTitle.weight(.bold))
             
-            Text("Enter the IP address of your PC running the pairing server.\n\nExample: 192.168.1.100")
+            Text("Enter the IPv4 address of your PC running the pairing server.\n\nExample: 192.168.1.100")
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
             
-            TextField("PC IP Address", text: $serverIP)
+            TextField("PC IPv4 Address", text: $serverIP)
                 .textFieldStyle(.roundedBorder)
                 .keyboardType(.decimalPad)
                 .padding(.horizontal, 60)
@@ -242,9 +242,9 @@ struct OnboardingView: View {
         fetchedDevice = nil
         
         let trimmedIP = serverIP.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let url = buildURL(from: trimmedIP)?.appendingPathComponent("usb_check") else {
+        guard let url = buildIPv4URL(from: trimmedIP)?.appendingPathComponent("usb_check") else {
             isCheckingUSB = false
-            errorMessage = "Invalid server address"
+            errorMessage = "Enter a numeric IPv4, e.g. 192.168.1.10"
             return
         }
         
@@ -283,25 +283,23 @@ struct OnboardingView: View {
         }.resume()
     }
     
-    private func buildURL(from input: String) -> URL? {
-        var candidate = input
-        if !candidate.contains("://") {
-            candidate = "http://\(candidate)"
+    private func buildIPv4URL(from input: String) -> URL? {
+        // Accept forms like 192.168.1.10 or 192.168.1.10:5000
+        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        let parts = trimmed.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: true)
+        guard let hostPart = parts.first, isValidIPv4(String(hostPart)) else { return nil }
+        let portPart = parts.count == 2 ? parts[1] : "5000"
+        guard let port = Int(portPart), (1...65535).contains(port) else { return nil }
+        return URL(string: "http://\(hostPart):\(port)")
+    }
+
+    private func isValidIPv4(_ text: String) -> Bool {
+        let comps = text.split(separator: ".")
+        guard comps.count == 4 else { return false }
+        return comps.allSatisfy { part in
+            guard let n = Int(part), (0...255).contains(n) else { return false }
+            return String(n) == part
         }
-        
-        guard var components = URLComponents(string: candidate) else {
-            return nil
-        }
-        
-        if components.scheme == nil {
-            components.scheme = "http"
-        }
-        
-        if components.port == nil {
-            components.port = 5000
-        }
-        
-        return components.url
     }
 }
 

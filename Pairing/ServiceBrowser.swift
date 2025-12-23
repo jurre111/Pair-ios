@@ -137,21 +137,8 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
             DispatchQueue.main.async {
                 self.discoveredPCs[sender.name] = bestURL
             }
-        } else if let hostName = sender.hostName, sender.port > 0 {
-            // Fallback: use the hostname directly (e.g., jurre-Latitude-3120.local)
-            let cleanHost = hostName.hasSuffix(".") ? String(hostName.dropLast()) : hostName
-            if let fallbackURL = URL(string: "http://\(cleanHost):\(sender.port)") {
-                let log = "✓ Using hostname fallback: \(fallbackURL)"
-                print(log)
-                addLog(log)
-                DispatchQueue.main.async {
-                    self.discoveredPCs[sender.name] = fallbackURL
-                }
-            } else {
-                addLog("✗ Could not create fallback URL from hostname \(hostName)")
-            }
         } else {
-            let log = "✗ Could not create URL from \(addresses.count) address(es)"
+            let log = "✗ Could not create IPv4 URL from \(addresses.count) address(es); ignoring hostname fallback by policy"
             print(log)
             addLog(log)
         }

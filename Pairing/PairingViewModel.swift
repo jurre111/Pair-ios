@@ -81,6 +81,12 @@ class PairingViewModel: ObservableObject {
     }
 
     func requestPairing(for pcName: String) {
+        guard !storedUDID.isEmpty else {
+            status = "Complete setup first"
+            errorMessage = "Connect via USB to fetch your device UDID from the PC, then retry."
+            return
+        }
+
         guard let pcURL = discoveredPCs[pcName] else {
             status = "PC not found"
             errorMessage = "No network service matches \(pcName)."
@@ -88,16 +94,9 @@ class PairingViewModel: ObservableObject {
         }
         
         let deviceName = UIDevice.current.name
-        // Use the stored hardware UDID if available, otherwise fall back to identifierForVendor
-        let currentUDID: String
-        if !storedUDID.isEmpty {
-            currentUDID = storedUDID
-        } else {
-            currentUDID = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
-        }
 
         let requestBody: [String: String] = [
-            "udid": currentUDID,
+            "udid": storedUDID,
             "request": "pairing_file",
             "device_name": deviceName
         ]
@@ -165,12 +164,12 @@ class PairingViewModel: ObservableObject {
     func addManualPC(ip: String) -> String? {
         let trimmedIP = ip.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedIP.isEmpty else {
-            errorMessage = "Enter a valid IP address."
+            errorMessage = "Enter an IPv4 address."
             return nil
         }
 
-        guard let url = Self.url(from: trimmedIP) else {
-            errorMessage = "Unable to parse IP address."
+        guard let url = Self.ipv4URL(from: trimmedIP) else {
+            errorMessage = "Use numeric IPv4 only, e.g. 192.168.1.10:5000"
             return nil
         }
 
@@ -183,33 +182,24 @@ class PairingViewModel: ObservableObject {
         return key
     }
 
-    private static func url(from input: String) -> URL? {
-        var candidate = input
-        if !candidate.contains("://") {
-            candidate = "http://\(candidate)"
-        }
+    private static func ipv4URL(from input: String) -> URL? {
+        // Accept forms like 192.168.1.10 or 192.168.1.10:5000
+        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        let parts = trimmed.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: true)
+        guard let hostPart = parts.first, isValidIPv4(String(hostPart)) else { return nil }
+        let portPart = parts.count == 2 ? parts[1] : "5000"
+        guard let port = Int(portPart), (1...65535).contains(port) else { return nil }
+        return URL(string: "http://\(hostPart):\(port)")
+    }
 
-        guard var components = URLComponents(string: candidate) else {
-            return nil
+    private static func isValidIPv4(_ text: String) -> Bool {
+        let comps = text.split(separator: ".")
+        guard comps.count == 4 else { return false }
+        return comps.allSatisfy { part in
+            guard let n = Int(part), (0...255).contains(n) else { return false }
+            // Prevent leading plus/minus and empty segments
+            return String(n) == part
         }
-
-        if components.scheme == nil {
-            components.scheme = "http"
-        }
-
-        if components.port == nil {
-            components.port = 5000
-        }
-
-        if components.host == nil || components.host?.isEmpty == true {
-            return nil
-        }
-
-        if components.path.isEmpty {
-            components.path = "/"
-        }
-
-        return components.url
     }
 
     private func startUSBWait(pcName: String, udid: String, baseURL: URL) {
