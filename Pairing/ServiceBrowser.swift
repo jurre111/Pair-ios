@@ -67,7 +67,89 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
         addLog(log)
         addLog("Attempting to resolve address...")
         service.delegate = self
-        service.resolve(withTimeout: 10.0)  // Increase timeout to 10 seconds
+        
+        // Start resolution
+        service.resolve(withTimeout: 10.0)
+        
+        // Workaround: If resolution takes too long, try scanning local network
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+            guard let self = self else { return }
+            // If still not resolved after 3 seconds, try common local IPs
+            if self.discoveredPCs[service.name] == nil {
+                self.addLog("⚠️ Resolution slow, trying direct connection scan...")
+                self.tryScanLocalNetwork(for: service.name)
+            }
+        }
+    }
+    
+    private func tryScanLocalNetwork(for serviceName: String) {
+        // Get device's local IP to determine network
+        guard let localIP = getLocalIPAddress() else {
+            addLog("✗ Could not determine local IP address")
+            return
+        }
+        
+        // Extract network prefix (e.g., "192.168.2" from "192.168.2.15")
+        let components = localIP.split(separator: ".")
+        guard components.count == 4 else { return }
+        
+        let networkPrefix = "\(components[0]).\(components[1]).\(components[2])"
+        addLog("Scanning network: \(networkPrefix).x")
+        
+        // Try common host IPs in parallel
+        let commonHosts = [1, 10, 100, 254] // Common router/server IPs
+        for host in commonHosts {
+            let testIP = "\(networkPrefix).\(host)"
+            testConnection(ip: testIP, serviceName: serviceName)
+        }
+    }
+    
+    private func getLocalIPAddress() -> String? {
+        var address: String?
+        var ifaddr: UnsafeMutablePointer<ifaddrs>?
+        
+        if getifaddrs(&ifaddr) == 0 {
+            var ptr = ifaddr
+            while ptr != nil {
+                defer { ptr = ptr?.pointee.ifa_next }
+                
+                let interface = ptr?.pointee
+                let addrFamily = interface?.ifa_addr.pointee.sa_family
+                
+                if addrFamily == UInt8(AF_INET) {
+                    let name = String(cString: (interface?.ifa_name)!)
+                    if name == "en0" || name.starts(with: "wlan") {
+                        var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+                        getnameinfo(interface?.ifa_addr, socklen_t((interface?.ifa_addr.pointee.sa_len)!),
+                                  &hostname, socklen_t(hostname.count),
+                                  nil, socklen_t(0), NI_NUMERICHOST)
+                        address = String(cString: hostname)
+                    }
+                }
+            }
+            freeifaddrs(ifaddr)
+        }
+        return address
+    }
+    
+    private func testConnection(ip: String, serviceName: String) {
+        guard let url = URL(string: "http://\(ip):5000/mdns_status") else { return }
+        
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 2.0
+        
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            guard let self = self else { return }
+            
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
+                self.addLog("✓ Found server at \(ip):5000")
+                if let baseURL = URL(string: "http://\(ip):5000") {
+                    DispatchQueue.main.async {
+                        self.discoveredPCs[serviceName] = baseURL
+                    }
+                }
+            }
+        }.resume()
     }
 
     func netServiceBrowser(_ browser: NetServiceBrowser, didNotSearch errorDict: [String : NSNumber]) {
