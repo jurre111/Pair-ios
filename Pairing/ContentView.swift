@@ -22,7 +22,7 @@ struct ContentView: View {
                 )
             }
         }
-        .onChange(of: storedUDID) { _, newValue in
+        .onChange(of: storedUDID) { newValue in
             viewModel.storedUDID = newValue
         }
         .onAppear {
