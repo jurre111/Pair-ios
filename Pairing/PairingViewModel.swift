@@ -259,10 +259,14 @@ class PairingViewModel: ObservableObject {
         let deviceName = UIDevice.current.name
         let udid = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
         
-        let requestBody: [String: String] = [
+        let requestBody: [String: Any] = [
             "udid": udid,
             "request": "pairing_file",
-            "device_name": deviceName
+            "device_profile": [
+                "name": deviceName,
+                "product_type": deviceModelIdentifier(),
+                "os_version": UIDevice.current.systemVersion
+            ]
         ]
         
         let url = pc.url.appendingPathComponent("request_pairing")
@@ -572,5 +576,20 @@ class PairingViewModel: ObservableObject {
     private func triggerSuccessHaptic() {
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.success)
+    }
+}
+
+extension PairingViewModel {
+    /// Returns a hardware model identifier such as "iPhone15,4".
+    private func deviceModelIdentifier() -> String {
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        let mirror = Mirror(reflecting: systemInfo.machine)
+        let identifier = mirror.children.reduce(into: "") { identifier, element in
+            if let value = element.value as? Int8, value != 0 {
+                identifier.append(String(UnicodeScalar(UInt8(value))))
+            }
+        }
+        return identifier
     }
 }
