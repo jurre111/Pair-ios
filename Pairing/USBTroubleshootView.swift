@@ -134,5 +134,5 @@ struct USBTroubleshootView: View {
 }
 
 #Preview {
-    USBTroubleshootView(pcName: "MacBook Pro", message: "We need a USB connection to finish pairing.") {}
+    USBTroubleshootView(pcName: "MacBook Pro", message: "We need a USB connection to finish pairing.", isFromSettings: false) {}
 }
