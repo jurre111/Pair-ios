@@ -52,7 +52,10 @@ struct ContentView: View {
                 }
             }
             .sheet(isPresented: $showingSettings) {
-                SettingsView(isOnboardingComplete: $isOnboardingComplete)
+                SettingsView(isOnboardingComplete: $isOnboardingComplete) {
+                    // Reset callback - clear in-memory state
+                    viewModel.reset()
+                }
             }
             .sheet(isPresented: $showingShareSheet) {
                 if case .success(let fileURL) = viewModel.state {

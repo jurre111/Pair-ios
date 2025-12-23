@@ -155,7 +155,9 @@ struct PCSelectionView: View {
                 VStack(spacing: 12) {
                     TextField("192.168.1.100", text: $manualIP)
                         .textFieldStyle(.plain)
-                        .keyboardType(.decimalPad)
+                        .keyboardType(.URL)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
                         .padding()
                         .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 12))
                         .focused($isManualIPFocused)

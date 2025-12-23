@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var isOnboardingComplete: Bool
+    var onReset: (() -> Void)?
     
     @State private var showingResetConfirmation = false
     
@@ -32,17 +33,24 @@ struct SettingsView: View {
                         Text(UIDevice.current.systemVersion)
                             .foregroundStyle(.secondary)
                     }
+                } header: {
+                    Text("Device Information")
                 }
                 
-                // Actions Section
+                // Reset Section
                 Section {
                     Button(role: .destructive) {
                         showingResetConfirmation = true
                     } label: {
-                        Label("Reset App", systemImage: "arrow.counterclockwise")
+                        HStack {
+                            Image(systemName: "trash")
+                                .foregroundStyle(.red)
+                            Text("Reset App")
+                                .foregroundStyle(.red)
+                        }
                     }
                 } footer: {
-                    Text("This will show the welcome screen again.")
+                    Text("Clears all app data including saved PCs, settings, and shows the welcome screen.")
                 }
                 
                 // About Section
@@ -56,7 +64,7 @@ struct SettingsView: View {
                 } header: {
                     Text("About")
                 } footer: {
-                    Text("Pairing helps you create pairing files for iOS devices to connect with a PC.")
+                    Text("Pairing helps you create pairing files for iOS devices.")
                 }
             }
             .navigationTitle("Settings")
@@ -74,17 +82,31 @@ struct SettingsView: View {
                 isPresented: $showingResetConfirmation,
                 titleVisibility: .visible
             ) {
-                Button("Reset", role: .destructive) {
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                        isOnboardingComplete = false
-                    }
-                    dismiss()
+                Button("Reset Everything", role: .destructive) {
+                    resetApp()
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("This will show the welcome screen again and clear any saved settings.")
+                Text("This will delete all saved data and return the app to its initial state. This cannot be undone.")
             }
         }
+    }
+    
+    private func resetApp() {
+        // Clear all AppStorage values
+        UserDefaults.standard.removeObject(forKey: Constants.StorageKeys.isOnboardingComplete)
+        UserDefaults.standard.removeObject(forKey: Constants.StorageKeys.savedManualIPs)
+        UserDefaults.standard.removeObject(forKey: Constants.StorageKeys.lastSelectedPC)
+        
+        // Notify parent to reset any in-memory state
+        onReset?()
+        
+        // Update binding to trigger UI change
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+            isOnboardingComplete = false
+        }
+        
+        dismiss()
     }
 }
 
