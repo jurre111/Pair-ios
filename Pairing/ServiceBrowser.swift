@@ -7,14 +7,19 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
     @Published var discoveredPCs: [String: URL] = [:] // name to URL
 
     func startBrowsing() {
+        print("🔍 Starting mDNS service discovery...")
         browser.stop()
         browser = NetServiceBrowser()
         browser.includesPeerToPeer = true
         browser.delegate = self
         services.removeAll()
         discoveredPCs.removeAll()
+        
+        // Search in both default and local domains for maximum compatibility
+        print("   Searching for: _pairing._tcp.")
         browser.searchForServices(ofType: "_pairing._tcp.", inDomain: "")
         browser.searchForServices(ofType: "_pairing._tcp.", inDomain: "local.")
+        print("   Browser started, waiting for services...")
     }
 
     func stopBrowsing() {
@@ -23,13 +28,24 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
 
     // NetServiceBrowserDelegate
     func netServiceBrowser(_ browser: NetServiceBrowser, didFind service: NetService, moreComing: Bool) {
-        print("Found service: \(service.name)")
+        print("✓ Found service: \(service.name) (domain: \(service.domain), type: \(service.type))")
         service.delegate = self
         service.resolve(withTimeout: 5.0)
     }
 
     func netServiceBrowser(_ browser: NetServiceBrowser, didNotSearch errorDict: [String : NSNumber]) {
-        print("Service browser failed: \(errorDict)")
+        print("✗ Service browser failed to search: \(errorDict)")
+        if let errorCode = errorDict[NetService.errorCode] {
+            print("   Error code: \(errorCode)")
+        }
+    }
+    
+    func netServiceBrowserDidStopSearch(_ browser: NetServiceBrowser) {
+        print("⚠️ Service browser stopped searching")
+    }
+    
+    func netServiceBrowserWillSearch(_ browser: NetServiceBrowser) {
+        print("▶️ Service browser will start searching")
     }
 
     func netServiceBrowser(_ browser: NetServiceBrowser, didRemove service: NetService, moreComing: Bool) {
@@ -49,14 +65,20 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
             .sorted(by: preferIPv4)
 
         if let bestURL = urls.first {
-            print("Resolved \(sender.name) to \(bestURL)")
+            print("✓ Resolved \(sender.name) to \(bestURL)")
             DispatchQueue.main.async {
                 self.discoveredPCs[sender.name] = bestURL
             }
+        } else {
+            print("✗ Could not create URL for \(sender.name)")
         }
         DispatchQueue.main.async {
             self.services.append(sender)
         }
+    }
+    
+    func netService(_ sender: NetService, didNotResolve errorDict: [String : NSNumber]) {
+        print("✗ Failed to resolve \(sender.name): \(errorDict)")
     }
 
     private func makeURL(from data: Data, port: Int) -> URL? {

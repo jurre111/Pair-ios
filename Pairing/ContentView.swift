@@ -68,6 +68,7 @@ struct ContentView: View {
                     viewModel.refreshDiscovery()
                 }
                 .buttonStyle(.borderless)
+                .font(.subheadline)
                 if viewModel.isSearchingForServices && viewModel.discoveredPCs.isEmpty {
                     ProgressView()
                         .scaleEffect(0.8)
@@ -84,6 +85,12 @@ struct ContentView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
+                    
+                    Text("Note: Some networks block device discovery. Use Manual PC below if discovery doesn't work.")
+                        .font(.caption2)
+                        .foregroundColor(.orange)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, 4)
                 }
                 .padding()
                 .frame(maxWidth: .infinity)
