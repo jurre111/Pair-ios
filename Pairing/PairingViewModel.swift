@@ -70,6 +70,7 @@ class PairingViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var usbPollTask: Task<Void, Never>?
     private var hasStartedBrowsing = false
+    private var reachableHosts: Set<String> = []
     
     // MARK: - Computed Properties
     
@@ -123,12 +124,12 @@ class PairingViewModel: ObservableObject {
             pcs.append(DiscoveredPC(id: name, name: name, url: url, isManual: true))
         }
 
-        // Filter to only reachable hosts so offline boxes don't linger as "available".
-        Task.detached { [weak self] in
-            guard let self else { return }
-            let reachable = pcs.filter { self.isHostReachable(host: $0.url.host ?? $0.id) }
+        Task.detached { [pcs, weak self] in
+            let reachable = await PairingViewModel.filterReachable(pcs: pcs)
             await MainActor.run {
+                guard let self else { return }
                 self.discoveredPCs = reachable.sorted { $0.name < $1.name }
+                self.reachableHosts = Set(reachable.map { self.normalizedHost($0.url.host ?? $0.id) })
 
                 if let selected = self.selectedPCId,
                    !self.discoveredPCs.contains(where: { $0.id == selected }) {
@@ -427,34 +428,71 @@ class PairingViewModel: ObservableObject {
     }
 
     func isSavedPCAvailable(_ pc: SavedPC) -> Bool {
-        let host = pc.address
+        let host = normalizedHost(pc.address)
         if pc.isManual {
-            return isHostReachable(host: host)
+            return reachableHosts.contains(host)
         }
         let isDiscovered = discoveredPCs.contains { $0.displayAddress == pc.address || $0.id == pc.id || $0.name == pc.name }
-        return isDiscovered && isHostReachable(host: host)
+        return isDiscovered && reachableHosts.contains(host)
     }
 
-    private func isHostReachable(host: String) -> Bool {
-        guard let port = NWEndpoint.Port(rawValue: UInt16(Constants.defaultPort)) else { return false }
-        let conn = NWConnection(host: .init(host), port: port, using: .tcp)
-        let semaphore = DispatchSemaphore(value: 0)
-        var reachable = false
-        conn.stateUpdateHandler = { state in
-            switch state {
-            case .ready:
-                reachable = true
-                semaphore.signal()
-            case .failed, .cancelled:
-                semaphore.signal()
-            default:
-                break
+    private func normalizedHost(_ host: String) -> String {
+        host.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    nonisolated private static func filterReachable(pcs: [DiscoveredPC]) async -> [DiscoveredPC] {
+        await withTaskGroup(of: DiscoveredPC?.self) { group in
+            for pc in pcs {
+                group.addTask {
+                    let host = pc.url.host ?? pc.id
+                    let reachable = await checkHostReachable(host: host)
+                    return reachable ? pc : nil
+                }
+            }
+            return await group.compactMap { $0 }
+        }
+    }
+
+    nonisolated private static func checkHostReachable(host: String) async -> Bool {
+        await withCheckedContinuation { continuation in
+            guard let port = NWEndpoint.Port(rawValue: UInt16(Constants.defaultPort)) else {
+                continuation.resume(returning: false)
+                return
+            }
+
+            let queue = DispatchQueue(label: "reachability-")
+            let connection = NWConnection(host: .init(host), port: port, using: .tcp)
+            let lock = DispatchQueue(label: "reachability-resume-lock")
+            var resumed = false
+
+            let resume: (Bool) -> Void = { value in
+                lock.sync {
+                    if resumed { return }
+                    resumed = true
+                    continuation.resume(returning: value)
+                }
+            }
+
+            connection.stateUpdateHandler = { state in
+                switch state {
+                case .ready:
+                    resume(true)
+                    connection.cancel()
+                case .failed, .cancelled:
+                    resume(false)
+                default:
+                    break
+                }
+            }
+
+            connection.start(queue: queue)
+
+            // Timeout guard
+            queue.asyncAfter(deadline: .now() + 1.0) {
+                resume(false)
+                connection.cancel()
             }
         }
-        conn.start(queue: .global())
-        _ = semaphore.wait(timeout: .now() + 1.0)
-        conn.cancel()
-        return reachable
     }
 
     private func persistSavedPCs() {
