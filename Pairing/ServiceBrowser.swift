@@ -7,7 +7,12 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
     @Published var discoveredPCs: [String: URL] = [:] // name to URL
 
     func startBrowsing() {
+        browser.stop()
+        browser = NetServiceBrowser()
+        browser.includesPeerToPeer = true
         browser.delegate = self
+        services.removeAll()
+        discoveredPCs.removeAll()
         browser.searchForServices(ofType: "_pairing._tcp.", inDomain: "local.")
     }
 
@@ -24,7 +29,9 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
 
     func netServiceBrowser(_ browser: NetServiceBrowser, didRemove service: NetService, moreComing: Bool) {
         services.removeAll { $0 == service }
-        discoveredPCs.removeValue(forKey: service.name)
+        DispatchQueue.main.async {
+            self.discoveredPCs.removeValue(forKey: service.name)
+        }
     }
 
     // NetServiceDelegate
@@ -38,9 +45,13 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
 
         if let bestURL = urls.first {
             print("Resolved \(sender.name) to \(bestURL)")
-            discoveredPCs[sender.name] = bestURL
+            DispatchQueue.main.async {
+                self.discoveredPCs[sender.name] = bestURL
+            }
         }
-        services.append(sender)
+        DispatchQueue.main.async {
+            self.services.append(sender)
+        }
     }
 
     private func makeURL(from data: Data, port: Int) -> URL? {

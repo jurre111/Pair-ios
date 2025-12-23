@@ -13,6 +13,8 @@ class PairingViewModel: ObservableObject {
     private let serviceBrowser = ServiceBrowser()
     private var manualPCs: [String: URL] = [:]
     private var cancellables = Set<AnyCancellable>()
+    private var usbRetryRemaining = 0
+    private var usbRetryTarget: (pcName: String, baseURL: URL, udid: String)?
 
     init() {
         serviceBrowser.startBrowsing()
@@ -24,6 +26,11 @@ class PairingViewModel: ObservableObject {
                 self.discoveredPCs = autoPCs.merging(self.manualPCs) { (_, new) in new }
             }
             .store(in: &cancellables)
+    }
+
+    func refreshDiscovery() {
+        isSearchingForServices = true
+        serviceBrowser.startBrowsing()
     }
 
     func requestPairing(for pcName: String) {
@@ -81,6 +88,7 @@ class PairingViewModel: ObservableObject {
                         self.showUSBAlert = true
                         self.status = "Connect USB to \(pcName) for pairing"
                         self.errorMessage = errorMsg
+                        self.startUSBWait(pcName: pcName, udid: currentUDID, baseURL: pcURL)
                     } else {
                         self.status = "Error while pairing"
                         self.errorMessage = errorMsg
@@ -142,6 +150,39 @@ class PairingViewModel: ObservableObject {
         }
 
         return components.url
+    }
+
+    private func startUSBWait(pcName: String, udid: String, baseURL: URL) {
+        usbRetryRemaining = 10
+        usbRetryTarget = (pcName, baseURL, udid)
+        status = "Waiting for USB on \(pcName)..."
+        pollUSBAndRetry()
+    }
+
+    private func pollUSBAndRetry() {
+        guard usbRetryRemaining > 0, let target = usbRetryTarget else { return }
+        usbRetryRemaining -= 1
+
+        let statusURL = target.baseURL.appendingPathComponent("usb_status")
+        let req = URLRequest(url: statusURL, cachePolicy: .reloadIgnoringLocalAndRemoteCacheData, timeoutInterval: 3)
+
+        URLSession.shared.dataTask(with: req) { data, response, error in
+            DispatchQueue.main.async {
+                if let data = data,
+                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let udids = json["connected_udids"] as? [String],
+                   udids.contains(target.udid) {
+                    self.usbRetryTarget = nil
+                    self.requestPairing(for: target.pcName)
+                    return
+                }
+
+                // Schedule another poll if attempts remain
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    self.pollUSBAndRetry()
+                }
+            }
+        }.resume()
     }
 
     private func savePairingFile(data: Data, udid: String) {

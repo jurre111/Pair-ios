@@ -64,6 +64,10 @@ struct ContentView: View {
                 Text("Discovered PCs")
                     .font(.headline)
                 Spacer()
+                Button("Rescan") {
+                    viewModel.refreshDiscovery()
+                }
+                .buttonStyle(.borderless)
                 if viewModel.isSearchingForServices && viewModel.discoveredPCs.isEmpty {
                     ProgressView()
                         .scaleEffect(0.8)
