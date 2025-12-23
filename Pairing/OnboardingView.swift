@@ -3,26 +3,40 @@ import SwiftUI
 struct OnboardingView: View {
     @Binding var isOnboardingComplete: Bool
     @Binding var storedUDID: String
+    @State private var showContent = false
     
     var body: some View {
         VStack(spacing: 0) {
             Spacer()
             
             TitleView()
+                .opacity(showContent ? 1 : 0)
+                .offset(y: showContent ? 0 : 20)
             
             Spacer()
             
             InformationContainerView()
+                .opacity(showContent ? 1 : 0)
+                .offset(y: showContent ? 0 : 30)
             
             Spacer()
             
             Button(action: {
-                isOnboardingComplete = true
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                    isOnboardingComplete = true
+                }
             }) {
                 Text("Continue")
                     .customButton()
             }
+            .opacity(showContent ? 1 : 0)
+            .offset(y: showContent ? 0 : 40)
             .padding(.bottom, 50)
+        }
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.8)) {
+                showContent = true
+            }
         }
     }
 }

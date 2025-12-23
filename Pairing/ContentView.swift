@@ -15,13 +15,22 @@ struct ContentView: View {
         Group {
             if isOnboardingComplete {
                 mainContent
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .move(edge: .trailing)),
+                        removal: .opacity.combined(with: .move(edge: .leading))
+                    ))
             } else {
                 OnboardingView(
                     isOnboardingComplete: $isOnboardingComplete,
                     storedUDID: $storedUDID
                 )
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .move(edge: .leading)),
+                    removal: .opacity.combined(with: .move(edge: .trailing))
+                ))
             }
         }
+        .animation(.spring(response: 0.5, dampingFraction: 0.8), value: isOnboardingComplete)
         .onChange(of: storedUDID) { newValue in
             viewModel.storedUDID = newValue
         }
@@ -88,6 +97,7 @@ struct ContentView: View {
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
+                .animation(.easeInOut(duration: 0.3), value: viewModel.status)
 
             if let error = viewModel.errorMessage {
                 Text(error)
@@ -95,12 +105,14 @@ struct ContentView: View {
                     .foregroundColor(.red)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
             }
 
             if viewModel.pairingFileSaved {
                 Label("Pairing file saved", systemImage: "checkmark.seal.fill")
                     .foregroundColor(.green)
                     .font(.footnote)
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
             }
 
             if viewModel.pairingFileURL != nil {
@@ -108,16 +120,21 @@ struct ContentView: View {
                     showingShareSheet = true
                 }
                 .font(.footnote)
+                .transition(.opacity)
             }
 
             Button(viewModel.showDebugLogs ? "Hide discovery logs" : "Show discovery logs") {
-                viewModel.showDebugLogs.toggle()
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    viewModel.showDebugLogs.toggle()
+                }
             }
             .font(.footnote)
         }
         .padding()
         .frame(maxWidth: .infinity)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18))
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.pairingFileSaved)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.errorMessage)
     }
 
     private var discoveredSection: some View {
@@ -127,21 +144,26 @@ struct ContentView: View {
                     .font(.headline)
                 Spacer()
                 Button("Rescan") {
-                    viewModel.refreshDiscovery()
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        viewModel.refreshDiscovery()
+                    }
                 }
                 .buttonStyle(.borderless)
                 .font(.subheadline)
                 if viewModel.isSearchingForServices && viewModel.discoveredPCs.isEmpty {
                     ProgressView()
                         .scaleEffect(0.8)
+                        .transition(.opacity)
                 }
             }
+            .animation(.easeInOut(duration: 0.2), value: viewModel.isSearchingForServices)
 
             if viewModel.discoveredPCs.isEmpty {
                 VStack(spacing: 6) {
                     Text(viewModel.isSearchingForServices ? "Still scanning your network..." : "No PCs found yet.")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
+                        .animation(.easeInOut(duration: 0.3), value: viewModel.isSearchingForServices)
 
                     Text("Ensure the PC companion app is running on the same Wi-Fi and advertising the pairing service.")
                         .font(.caption)
@@ -156,20 +178,26 @@ struct ContentView: View {
                     
                     if !viewModel.isSearchingForServices && !viewModel.serviceBrowser.debugLogs.isEmpty {
                         Button("Show Discovery Logs") {
-                            viewModel.showDebugLogs = true
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                viewModel.showDebugLogs = true
+                            }
                         }
                         .font(.caption)
                         .padding(.top, 8)
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
                     }
                 }
                 .padding()
                 .frame(maxWidth: .infinity)
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                .transition(.opacity.combined(with: .scale(scale: 0.98)))
             } else {
                 VStack(spacing: 10) {
                     ForEach(viewModel.discoveredPCs.keys.sorted(), id: \.self) { name in
                         Button {
-                            selectedPC = name
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                selectedPC = name
+                            }
                         } label: {
                             HStack(spacing: 12) {
                                 VStack(alignment: .leading, spacing: 4) {
@@ -186,6 +214,7 @@ struct ContentView: View {
                                 if selectedPC == name {
                                     Image(systemName: "checkmark.circle.fill")
                                         .foregroundColor(.blue)
+                                        .transition(.scale.combined(with: .opacity))
                                 }
                             }
                             .padding()
@@ -194,10 +223,16 @@ struct ContentView: View {
                                 RoundedRectangle(cornerRadius: 12)
                                     .fill(selectedPC == name ? Color.blue.opacity(0.15) : Color(.systemBackground))
                             )
+                            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedPC)
                         }
                         .buttonStyle(.plain)
+                        .transition(.asymmetric(
+                            insertion: .opacity.combined(with: .move(edge: .top)),
+                            removal: .opacity
+                        ))
                     }
                 }
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.discoveredPCs.count)
             }
 
             Button(action: {
