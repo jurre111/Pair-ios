@@ -73,21 +73,23 @@ class PairingViewModel: ObservableObject {
                     return
                 }
 
+                // Handle JSON error payloads (e.g., USB required)
                 if let data = data,
                    let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let errorMsg = json["error"] as? String {
-                    if errorMsg.contains("Failed to generate") {
+                    if httpResponse.statusCode == 503 || errorMsg.localizedCaseInsensitiveContains("USB") {
                         self.showUSBAlert = true
                         self.status = "Connect USB to \(pcName) for pairing"
-                        self.errorMessage = "USB pairing required."
+                        self.errorMessage = errorMsg
                     } else {
                         self.status = "Error while pairing"
                         self.errorMessage = errorMsg
                     }
-                } else {
-                    self.status = "Unknown response from \(pcName)"
-                    self.errorMessage = "Server returned code \(httpResponse.statusCode). URL: \(url.absoluteString)"
+                    return
                 }
+
+                self.status = "Unknown response from \(pcName)"
+                self.errorMessage = "Server returned code \(httpResponse.statusCode). URL: \(url.absoluteString)"
             }
         }.resume()
     }
