@@ -104,7 +104,15 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
 
     // NetServiceDelegate
     func netServiceDidResolveAddress(_ sender: NetService) {
-        guard let addresses = sender.addresses else { return }
+        addLog("Resolution callback triggered for \(sender.name)")
+        addLog("  hostName: \(sender.hostName ?? "nil")")
+        addLog("  port: \(sender.port)")
+        addLog("  addresses count: \(sender.addresses?.count ?? 0)")
+        
+        guard let addresses = sender.addresses else {
+            addLog("✗ No addresses in resolved service")
+            return
+        }
 
         // Prefer IPv4; fall back to IPv6 with proper formatting
         let urls = addresses
@@ -112,14 +120,14 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
             .sorted(by: preferIPv4)
 
         if let bestURL = urls.first {
-            let log = "✓ Resolved \(sender.name) → \(bestURL.host ?? "unknown"):5000"
+            let log = "✓ Resolved \(sender.name) → \(bestURL.host ?? "unknown"):\(sender.port)"
             print(log)
             addLog(log)
             DispatchQueue.main.async {
                 self.discoveredPCs[sender.name] = bestURL
             }
         } else {
-            let log = "✗ Could not resolve address for \(sender.name)"
+            let log = "✗ Could not create URL from \(addresses.count) address(es)"
             print(log)
             addLog(log)
         }
@@ -129,9 +137,22 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
     }
     
     func netService(_ sender: NetService, didNotResolve errorDict: [String : NSNumber]) {
-        let log = "✗ Failed to resolve \(sender.name)"
+        let errorCode = errorDict[NetService.errorCode]?.intValue ?? -1
+        let log = "✗ Failed to resolve \(sender.name) (error: \(errorCode))"
         print(log)
         addLog(log)
+        
+        // Workaround: Try to construct URL using common mDNS pattern
+        // Service is likely at {hostname}.local:5000
+        if let hostName = sender.name.components(separatedBy: ".").first {
+            let possibleURL = URL(string: "http://\(sender.hostName ?? sender.name):5000")
+            if let url = possibleURL {
+                addLog("⚠️ Attempting fallback URL: \(url.absoluteString)")
+                DispatchQueue.main.async {
+                    self.discoveredPCs[sender.name] = url
+                }
+            }
+        }
     }
 
     private func makeURL(from data: Data, port: Int) -> URL? {
