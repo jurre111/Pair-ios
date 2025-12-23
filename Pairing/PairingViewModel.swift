@@ -2,6 +2,13 @@ import Foundation
 import SwiftUI
 import Combine
 
+struct SavedPC: Codable, Identifiable, Equatable {
+    let id: String
+    let name: String
+    let address: String
+    let isManual: Bool
+}
+
 /// Represents the current state of the pairing flow
 enum PairingState: Equatable {
     case selectPC
@@ -48,6 +55,7 @@ class PairingViewModel: ObservableObject {
     @Published private(set) var discoveredPCs: [DiscoveredPC] = []
     @Published private(set) var isSearching: Bool = false
     @Published var selectedPCId: String?
+    @Published private(set) var savedPCs: [SavedPC] = []
     
     // MARK: - Private Properties
     
@@ -78,6 +86,7 @@ class PairingViewModel: ObservableObject {
     
     init() {
         setupBindings()
+        loadSavedPCs()
         
         // Start discovery after a brief delay for UI to load
         Task {
@@ -164,6 +173,8 @@ class PairingViewModel: ObservableObject {
         
         // Auto-select the newly added PC
         selectedPCId = key
+
+        saveSavedPC(from: DiscoveredPC(id: key, name: trimmedIP, url: url, isManual: true))
         
         // Persist manual IPs
         saveManualIPs()
@@ -178,6 +189,7 @@ class PairingViewModel: ObservableObject {
             selectedPCId = nil
         }
         saveManualIPs()
+        removeSavedPC(id: id)
     }
     
     private func saveManualIPs() {
@@ -202,6 +214,7 @@ class PairingViewModel: ObservableObject {
             return
         }
         
+        saveSavedPC(from: pc)
         state = .connecting(pcName: pc.name)
         
         Task {
@@ -319,6 +332,11 @@ class PairingViewModel: ObservableObject {
         usbPollTask = nil
         state = .selectPC
         selectedPCId = nil
+        savedPCs.removeAll()
+        manualPCs.removeAll()
+        saveManualIPs()
+        persistSavedPCs()
+        updateDiscoveredPCs(autoPCs: serviceBrowser.discoveredPCs)
     }
     
     func dismissError() {
@@ -326,6 +344,47 @@ class PairingViewModel: ObservableObject {
     }
     
     // MARK: - Helpers
+
+    func selectPC(_ pc: DiscoveredPC) {
+        selectedPCId = pc.id
+        saveSavedPC(from: pc)
+    }
+
+    private func saveSavedPC(from pc: DiscoveredPC) {
+        let address = pc.url.host ?? pc.id
+        let newSaved = SavedPC(id: address, name: pc.name, address: address, isManual: pc.isManual)
+
+        if let index = savedPCs.firstIndex(where: { $0.id == newSaved.id }) {
+            savedPCs[index] = newSaved
+        } else {
+            savedPCs.append(newSaved)
+        }
+        persistSavedPCs()
+    }
+
+    func removeSavedPC(id: String) {
+        savedPCs.removeAll { $0.id == id }
+        persistSavedPCs()
+    }
+
+    func availableSavedPCs() -> [SavedPC] {
+        savedPCs.filter { saved in
+            if saved.isManual { return manualPCs[saved.id] != nil }
+            return discoveredPCs.contains { $0.displayAddress == saved.address || $0.id == saved.id || $0.name == saved.name }
+        }
+    }
+
+    private func persistSavedPCs() {
+        if let data = try? JSONEncoder().encode(savedPCs) {
+            UserDefaults.standard.set(data, forKey: Constants.StorageKeys.savedPCs)
+        }
+    }
+
+    private func loadSavedPCs() {
+        guard let data = UserDefaults.standard.data(forKey: Constants.StorageKeys.savedPCs),
+              let decoded = try? JSONDecoder().decode([SavedPC].self, from: data) else { return }
+        savedPCs = decoded
+    }
     
     private func buildURL(from input: String) -> URL? {
         var candidate = input

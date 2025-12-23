@@ -69,6 +69,12 @@ struct PCSelectionView: View {
                 pcListCards
             }
         }
+        .padding()
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color(.systemGray5), lineWidth: 1)
+        )
     }
     
     private var emptyStateCard: some View {
@@ -90,7 +96,7 @@ struct PCSelectionView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 32)
         .padding(.horizontal, 24)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
         .onAppear {
             if viewModel.isSearching {
                 pulseOpacity = true
@@ -109,7 +115,7 @@ struct PCSelectionView: View {
                     isSelected: viewModel.selectedPCId == pc.id,
                     onSelect: {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            viewModel.selectedPCId = pc.id
+                            viewModel.selectPC(pc)
                         }
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     },
@@ -127,40 +133,51 @@ struct PCSelectionView: View {
     
     private var manualEntrySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Button {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                    showManualEntry.toggle()
-                    if showManualEntry {
-                        isManualIPFocused = true
-                    }
-                }
-            } label: {
-                HStack {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundStyle(.blue)
-                    Text("Enter IP Manually")
-                        .foregroundStyle(.primary)
-                    Spacer()
-                    Image(systemName: "chevron.down")
+            HStack {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Manual Address")
+                        .font(.headline)
+                    Text("Add a server by IP or hostname")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                        .rotationEffect(.degrees(showManualEntry ? 180 : 0))
                 }
-                .padding()
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                Spacer()
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        showManualEntry.toggle()
+                        if showManualEntry {
+                            isManualIPFocused = true
+                        }
+                    }
+                } label: {
+                    Image(systemName: showManualEntry ? "chevron.up.circle.fill" : "plus.circle.fill")
+                        .font(.title3)
+                        .foregroundStyle(.blue)
+                        .symbolRenderingMode(.hierarchical)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
+            .padding()
+            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
             
             if showManualEntry {
                 VStack(spacing: 12) {
-                    TextField("192.168.1.100", text: $manualIP)
-                        .textFieldStyle(.plain)
-                        .keyboardType(.URL)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                        .padding()
-                        .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 12))
-                        .focused($isManualIPFocused)
+                    HStack(spacing: 10) {
+                        Image(systemName: "network")
+                            .foregroundStyle(.secondary)
+                        TextField("192.168.1.100", text: $manualIP)
+                            .textFieldStyle(.plain)
+                            .keyboardType(.URL)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                            .focused($isManualIPFocused)
+                    }
+                    .padding(12)
+                    .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 12))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(Color(.systemGray4), lineWidth: 1)
+                    )
                     
                     Button {
                         if viewModel.addManualPC(ip: manualIP) {
@@ -169,7 +186,7 @@ struct PCSelectionView: View {
                             isManualIPFocused = false
                         }
                     } label: {
-                        Text("Add")
+                        Text("Save & Select")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
@@ -177,8 +194,8 @@ struct PCSelectionView: View {
                     .buttonStyle(.borderedProminent)
                     .disabled(manualIP.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
-                .padding()
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                .padding(14)
+                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }

@@ -27,5 +27,6 @@ enum Constants {
         static let isOnboardingComplete = "isOnboardingComplete"
         static let savedManualIPs = "savedManualIPs"
         static let lastSelectedPC = "lastSelectedPC"
+        static let savedPCs = "savedPCs"
     }
 }

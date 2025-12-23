@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var isOnboardingComplete: Bool
+    @ObservedObject var viewModel: PairingViewModel
     var onReset: (() -> Void)?
     
     @State private var showingResetConfirmation = false
@@ -18,6 +19,50 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
+                // Saved PCs Section
+                Section {
+                    let available = viewModel.availableSavedPCs()
+                    if available.isEmpty {
+                        Label("No saved PCs available right now", systemImage: "tray")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(available) { pc in
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(pc.name)
+                                        .font(.body.weight(.medium))
+                                    Text(pc.address)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                if pc.isManual {
+                                    Text("Manual")
+                                        .font(.caption2)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 3)
+                                        .background(Color(.systemGray5), in: Capsule())
+                                }
+                                Button(role: .destructive) {
+                                    withAnimation {
+                                        viewModel.removeSavedPC(id: pc.id)
+                                        if pc.isManual {
+                                            viewModel.removeManualPC(id: pc.id)
+                                        }
+                                    }
+                                } label: {
+                                    Image(systemName: "trash")
+                                }
+                                .tint(.red)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Saved PCs")
+                } footer: {
+                    Text("Saved PCs show up here when they're available on your network.")
+                }
+
                 // Device Info Section
                 Section {
                     HStack {
@@ -66,6 +111,16 @@ struct SettingsView: View {
                 } footer: {
                     Text("Pairing helps you create pairing files for iOS devices.")
                 }
+
+                // Support Section
+                Section {
+                    Label("USB Troubleshooting", systemImage: "bolt.fill")
+                        .foregroundStyle(.primary)
+                    Label("Need help? Contact your admin.", systemImage: "questionmark.circle")
+                        .foregroundStyle(.secondary)
+                } header: {
+                    Text("Support")
+                }
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -97,6 +152,7 @@ struct SettingsView: View {
         UserDefaults.standard.removeObject(forKey: Constants.StorageKeys.isOnboardingComplete)
         UserDefaults.standard.removeObject(forKey: Constants.StorageKeys.savedManualIPs)
         UserDefaults.standard.removeObject(forKey: Constants.StorageKeys.lastSelectedPC)
+        UserDefaults.standard.removeObject(forKey: Constants.StorageKeys.savedPCs)
         
         // Notify parent to reset any in-memory state
         onReset?()
@@ -111,5 +167,5 @@ struct SettingsView: View {
 }
 
 #Preview {
-    SettingsView(isOnboardingComplete: .constant(true))
+    SettingsView(isOnboardingComplete: .constant(true), viewModel: PairingViewModel())
 }

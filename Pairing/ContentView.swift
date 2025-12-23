@@ -52,7 +52,7 @@ struct ContentView: View {
                 }
             }
             .sheet(isPresented: $showingSettings) {
-                SettingsView(isOnboardingComplete: $isOnboardingComplete) {
+                SettingsView(isOnboardingComplete: $isOnboardingComplete, viewModel: viewModel) {
                     // Reset callback - clear in-memory state
                     viewModel.reset()
                 }

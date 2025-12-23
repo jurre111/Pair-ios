@@ -115,6 +115,8 @@ struct ConnectionProgressView: View {
             Text(text)
                 .font(.subheadline)
                 .foregroundStyle(.primary)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
