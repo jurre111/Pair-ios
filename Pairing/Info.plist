@@ -32,7 +32,7 @@
   <string>Allow pairing with nearby computers on this network.</string>
   <key>NSBonjourServices</key>
   <array>
-    <string>_pairing._tcp.</string>
+    <string>_pairing._tcp</string>
   </array>
   <key>NSAppTransportSecurity</key>
   <dict>
