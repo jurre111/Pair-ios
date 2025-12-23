@@ -215,7 +215,7 @@ struct ContentView: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(.blue)
-            .controlSize(.medium)
+            .controlSize(.regular)
             .padding()
             .background(.regularMaterial)
         }

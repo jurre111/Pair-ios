@@ -66,7 +66,7 @@ struct SuccessView: View {
                         .padding(.vertical, 10)
                 }
                 .buttonStyle(.borderedProminent)
-                .controlSize(.medium)
+                .controlSize(.regular)
 
                 if let onInstallSideStore {
                     Button {
@@ -83,7 +83,7 @@ struct SuccessView: View {
                     }
                     .disabled(sidestoreWorking || sidestoreDisabled)
                     .buttonStyle(.borderedProminent)
-                    .controlSize(.medium)
+                    .controlSize(.regular)
 
                     if let sidestoreStatus {
                         Text(sidestoreStatus)

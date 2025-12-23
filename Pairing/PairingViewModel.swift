@@ -138,18 +138,18 @@ class PairingViewModel: ObservableObject {
 
         Task.detached { [pcs, weak vm = self] in
             let reachable = await PairingViewModel.filterReachable(pcs: pcs)
-            await MainActor.run {
-                guard let vm else { return }
-                vm.discoveredPCs = reachable.sorted { $0.name < $1.name }
-                vm.reachableHosts = Set(reachable.map { vm.normalizedHost($0.url.host ?? $0.id) })
+            await MainActor.run { [reachable] in
+                guard let strongVM = vm else { return }
+                strongVM.discoveredPCs = reachable.sorted { $0.name < $1.name }
+                strongVM.reachableHosts = Set(reachable.map { strongVM.normalizedHost($0.url.host ?? $0.id) })
 
-                if let selected = vm.selectedPCId,
-                   !vm.discoveredPCs.contains(where: { $0.id == selected }) {
-                    vm.selectedPCId = nil
+                if let selected = strongVM.selectedPCId,
+                   !strongVM.discoveredPCs.contains(where: { $0.id == selected }) {
+                    strongVM.selectedPCId = nil
                 }
 
                 if !reachable.isEmpty {
-                    vm.isSearching = false
+                    strongVM.isSearching = false
                 }
             }
         }

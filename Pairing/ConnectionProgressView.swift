@@ -86,7 +86,7 @@ struct ConnectionProgressView: View {
                         .padding(.vertical, 10)
                 }
                 .buttonStyle(.borderedProminent)
-                .controlSize(.medium)
+                .controlSize(.regular)
                 .tint(.blue)
                 .padding(.horizontal, 16)
                 .padding(.bottom, 12)

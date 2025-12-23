@@ -192,7 +192,7 @@ struct PCSelectionView: View {
                         .padding(.vertical, 10)
                 }
                 .buttonStyle(.borderedProminent)
-                .controlSize(.medium)
+                .controlSize(.regular)
                 .tint(.blue)
                 .disabled(manualIP.trimmingCharacters(in: .whitespaces).isEmpty)
             }
