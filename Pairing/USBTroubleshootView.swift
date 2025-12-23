@@ -3,6 +3,7 @@ import SwiftUI
 struct USBTroubleshootView: View {
     let pcName: String
     let message: String?
+    let isFromSettings: Bool
     let onClose: () -> Void
     
     @State private var animatePulse = false
@@ -10,9 +11,8 @@ struct USBTroubleshootView: View {
     
     var body: some View {
         ZStack {
-            LinearGradient(colors: [Color.blue.opacity(0.15), Color.indigo.opacity(0.35)], startPoint: .topLeading, endPoint: .bottomTrailing)
+            LinearGradient(colors: [Color.blue.opacity(0.18), Color.indigo.opacity(0.38)], startPoint: .topLeading, endPoint: .bottomTrailing)
                 .ignoresSafeArea()
-            radialDots
             VStack(spacing: 24) {
                 header
                 animatedBadge
@@ -27,9 +27,6 @@ struct USBTroubleshootView: View {
         .onAppear {
             withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
                 animatePulse = true
-            }
-            withAnimation(.linear(duration: 12).repeatForever(autoreverses: false)) {
-                rotate = true
             }
         }
     }
@@ -80,6 +77,11 @@ struct USBTroubleshootView: View {
                 .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 8)
         }
         .padding(.top, 12)
+        .onAppear {
+            withAnimation(.linear(duration: 14).repeatForever(autoreverses: false)) {
+                rotate = true
+            }
+        }
     }
     
     private var stepList: some View {
@@ -118,34 +120,17 @@ struct USBTroubleshootView: View {
     
     private var primaryButton: some View {
         Button(action: onClose) {
-            Text("Back to pairing")
+            Text(isFromSettings ? "Close" : "Back to Pairing")
                 .font(.headline)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
         }
         .buttonStyle(.borderedProminent)
-        .tint(.white)
-        .foregroundStyle(.blue)
+        .tint(.blue)
         .controlSize(.regular)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(.white)
-                .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 8)
-        )
         .padding(.top, 8)
     }
     
-    private var radialDots: some View {
-        ZStack {
-            ForEach(0..<12) { index in
-                Circle()
-                    .fill(Color.white.opacity(0.08))
-                    .frame(width: 6, height: 6)
-                    .offset(x: 120)
-                    .rotationEffect(.degrees(Double(index) / 12.0 * 360 + (rotate ? 180 : 0)))
-            }
-        }
-    }
 }
 
 #Preview {

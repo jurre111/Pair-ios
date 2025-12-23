@@ -16,6 +16,11 @@ enum PairingState: Equatable {
     case awaitingUSB(pcName: String, message: String)
     case success(fileURL: URL)
     case error(PairingError)
+
+    var isAwaitingUSBState: Bool {
+        if case .awaitingUSB = self { return true }
+        return false
+    }
     
     static func == (lhs: PairingState, rhs: PairingState) -> Bool {
         switch (lhs, rhs) {
@@ -337,6 +342,10 @@ class PairingViewModel: ObservableObject {
         usbPollTask = nil
         state = .selectPC
         selectedPCId = nil
+        savedPCs.removeAll()
+        manualPCs.removeAll()
+        saveManualIPs()
+        persistSavedPCs()
         updateDiscoveredPCs(autoPCs: serviceBrowser.discoveredPCs)
     }
     

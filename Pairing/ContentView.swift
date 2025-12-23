@@ -81,13 +81,14 @@ struct ContentView: View {
                 }
             }
             .fullScreenCover(isPresented: $showingUSBTroubleshoot) {
-                USBTroubleshootView(pcName: usbPCName, message: usbMessage) {
+                USBTroubleshootView(pcName: usbPCName, message: usbMessage, isFromSettings: !viewModel.state.isAwaitingUSBState) {
                     showingUSBTroubleshoot = false
                 }
             }
         }
         .onAppear {
             viewModel.loadSavedManualIPs()
+            viewModel.refreshDiscovery()
         }
         .onChange(of: viewModel.state) { state in
             if case .awaitingUSB(let pcName, let message) = state {
@@ -177,11 +178,11 @@ struct ContentView: View {
                         .font(.headline)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
+                .padding(.vertical, 10)
             }
             .buttonStyle(.borderedProminent)
             .tint(.blue)
-            .controlSize(.regular)
+            .controlSize(.large)
             .padding()
             .background(.regularMaterial)
         }

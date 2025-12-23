@@ -60,7 +60,7 @@ struct ErrorView: View {
                     Text("Try Again")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
+                        .padding(.vertical, 10)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)

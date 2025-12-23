@@ -39,7 +39,7 @@ struct PCSelectionView: View {
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(.white)
 
-                    Text("Choose a PC running the pairing server")
+                    Text("Make sure the Pairing Buddy server is running on your PC and you're on the same Wi‑Fi.")
                         .font(.subheadline)
                         .foregroundStyle(Color.white.opacity(0.85))
                         .multilineTextAlignment(.center)
@@ -92,7 +92,7 @@ struct PCSelectionView: View {
         VStack(spacing: 12) {
             Image(systemName: viewModel.isSearching ? "wifi" : "wifi.slash")
                 .font(.system(size: 32, weight: .light))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(viewModel.isSearching ? Color.blue : Color.red)
                 .opacity(viewModel.isSearching ? (pulseOpacity ? 0.4 : 1.0) : 1.0)
                 .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: pulseOpacity)
             
@@ -173,7 +173,7 @@ struct PCSelectionView: View {
                     Text("Save & Select")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                        .padding(.vertical, 10)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.regular)
@@ -181,7 +181,7 @@ struct PCSelectionView: View {
                 .disabled(manualIP.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .padding(14)
-            .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
+            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
         }
     }
 }
