@@ -8,6 +8,9 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
     @Published var debugLogs: [String] = []
     @Published var hasPermission: Bool = false
     @Published var searchFailed: Bool = false
+    
+    // Keep strong references to services being resolved
+    private var resolvingServices: [NetService] = []
 
     func startBrowsing() {
         let log = "🔍 Starting mDNS service discovery..."
@@ -19,6 +22,7 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
         browser.includesPeerToPeer = true
         browser.delegate = self
         services.removeAll()
+        resolvingServices.removeAll()
         searchFailed = false
         hasPermission = false
         
@@ -66,6 +70,10 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
         print(log)
         addLog(log)
         addLog("Resolving address (timeout: 15s)...")
+        
+        // IMPORTANT: Keep strong reference to service while resolving
+        resolvingServices.append(service)
+        
         service.delegate = self
         service.resolve(withTimeout: 15.0)
     }
@@ -109,6 +117,9 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
         addLog("  port: \(sender.port)")
         addLog("  addresses count: \(sender.addresses?.count ?? 0)")
         
+        // Remove from resolving list
+        resolvingServices.removeAll { $0 == sender }
+        
         guard let addresses = sender.addresses else {
             addLog("✗ No addresses in resolved service")
             return
@@ -137,22 +148,13 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
     }
     
     func netService(_ sender: NetService, didNotResolve errorDict: [String : NSNumber]) {
+        // Remove from resolving list
+        resolvingServices.removeAll { $0 == sender }
+        
         let errorCode = errorDict[NetService.errorCode]?.intValue ?? -1
         let log = "✗ Failed to resolve \(sender.name) (error: \(errorCode))"
         print(log)
         addLog(log)
-        
-        // Workaround: Try to construct URL using common mDNS pattern
-        // Service is likely at {hostname}.local:5000
-        if let hostName = sender.name.components(separatedBy: ".").first {
-            let possibleURL = URL(string: "http://\(sender.hostName ?? sender.name):5000")
-            if let url = possibleURL {
-                addLog("⚠️ Attempting fallback URL: \(url.absoluteString)")
-                DispatchQueue.main.async {
-                    self.discoveredPCs[sender.name] = url
-                }
-            }
-        }
     }
 
     private func makeURL(from data: Data, port: Int) -> URL? {
