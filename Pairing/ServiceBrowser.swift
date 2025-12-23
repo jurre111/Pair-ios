@@ -162,29 +162,25 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
             let sockaddrPtr = ptr.baseAddress!.assumingMemoryBound(to: sockaddr.self)
             var hostBuffer = [CChar](repeating: 0, count: Int(NI_MAXHOST))
             let family = Int32(sockaddrPtr.pointee.sa_family)
+            
+            // Only accept IPv4 addresses for reliability
+            guard family == AF_INET else {
+                return nil
+            }
 
             if getnameinfo(sockaddrPtr, socklen_t(data.count), &hostBuffer, socklen_t(hostBuffer.count), nil, 0, NI_NUMERICHOST) != 0 {
                 return nil
             }
 
-            var host = String(cString: hostBuffer)
-
-            // Strip scope ID for link-local IPv6 to avoid URL parsing issues
-            if let percentRange = host.range(of: "%") {
-                host.removeSubrange(percentRange.lowerBound..<host.endIndex)
-            }
-
-            if family == AF_INET6 {
-                host = "[\(host)]"
-            }
-
+            let host = String(cString: hostBuffer)
             return URL(string: "http://\(host):\(port)")
         }
     }
 
     private func preferIPv4(_ lhs: URL, _ rhs: URL) -> Bool {
-        let lhsIsV4 = lhs.host?.contains(":") == false
-        let rhsIsV4 = rhs.host?.contains(":") == false
+        // IPv4 addresses don't contain colons, IPv6 do
+        let lhsIsV4 = lhs.host?.contains(":") == false && lhs.host?.contains("[") == false
+        let rhsIsV4 = rhs.host?.contains(":") == false && rhs.host?.contains("[") == false
         if lhsIsV4 == rhsIsV4 { return true }
         return lhsIsV4 && !rhsIsV4
     }
