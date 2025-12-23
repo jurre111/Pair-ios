@@ -71,8 +71,8 @@ struct ConnectionProgressView: View {
                 Text("Cancel")
                     .font(.body.weight(.medium))
                     .foregroundStyle(.secondary)
-                    .padding(.vertical, 14)
-                    .padding(.horizontal, 32)
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 24)
             }
             .buttonStyle(.plain)
 
@@ -83,10 +83,10 @@ struct ConnectionProgressView: View {
                     Text("Need USB help?")
                         .font(.body.weight(.semibold))
                         .frame(maxWidth: .infinity)
-                        .padding()
+                        .padding(.vertical, 10)
                 }
                 .buttonStyle(.borderedProminent)
-                .controlSize(.regular)
+                .controlSize(.medium)
                 .tint(.blue)
                 .padding(.horizontal, 16)
                 .padding(.bottom, 12)

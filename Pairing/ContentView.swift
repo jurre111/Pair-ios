@@ -23,11 +23,11 @@ struct ContentView: View {
                         removal: .opacity.combined(with: .move(edge: .leading))
                     ))
             } else {
-                OnboardingView(isOnboardingComplete: $isOnboardingComplete)
+                .padding(.vertical, 10)
                     .transition(.asymmetric(
                         insertion: .opacity.combined(with: .move(edge: .leading)),
                         removal: .opacity.combined(with: .move(edge: .trailing))
-                    ))
+            .controlSize(.medium)
             }
         }
         .animation(.spring(response: 0.5, dampingFraction: 0.8), value: isOnboardingComplete)

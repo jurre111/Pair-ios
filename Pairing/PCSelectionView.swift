@@ -185,15 +185,19 @@ struct PCSelectionView: View {
                     Text("Save & Select")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 10)
                 }
                 .buttonStyle(.borderedProminent)
-                .controlSize(.regular)
+                .controlSize(.medium)
                 .tint(.blue)
                 .disabled(manualIP.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .padding(14)
-            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
+            .background(Color(.systemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Color(.systemGray4), lineWidth: 1)
+            )
         }
     }
 }
