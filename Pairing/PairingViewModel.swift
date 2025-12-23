@@ -42,11 +42,7 @@ class PairingViewModel: ObservableObject {
             "device_name": deviceName
         ]
         
-        guard let url = URL(string: "request_pairing", relativeTo: pcURL) else {
-            status = "Invalid URL"
-            errorMessage = "Unable to build request URL."
-            return
-        }
+        let url = pcURL.appendingPathComponent("request_pairing")
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
