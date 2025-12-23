@@ -360,6 +360,36 @@ class PairingViewModel: ObservableObject {
         saveSavedPC(from: pc)
     }
 
+    func installPairingIntoSideStore() async throws -> String {
+        guard let pc = selectedPC else {
+            throw PairingError.noServerSelected
+        }
+
+        var request = URLRequest(url: pc.url.appendingPathComponent("install_sidestore"), timeoutInterval: Constants.requestTimeout)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = Data() // empty body
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw PairingError.invalidResponse
+        }
+
+        if http.statusCode == 200 {
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let message = json["message"] as? String {
+                return message
+            }
+            return "Uploaded to SideStore"
+        }
+
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let errorMsg = json["error"] as? String {
+            throw PairingError.serverError(errorMsg)
+        }
+        throw PairingError.serverError("SideStore upload failed with status \(http.statusCode)")
+    }
+
     private func saveSavedPC(from pc: DiscoveredPC) {
         let address = pc.url.host ?? pc.id
         let newSaved = SavedPC(id: address, name: pc.name, address: address, isManual: pc.isManual)
