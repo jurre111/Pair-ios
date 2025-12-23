@@ -4,6 +4,7 @@ struct PCSelectionView: View {
     @ObservedObject var viewModel: PairingViewModel
     @State private var showManualEntry = false
     @State private var manualIP = ""
+    @State private var pulseOpacity = false
     @FocusState private var isManualIPFocused: Bool
     
     var body: some View {
@@ -75,7 +76,8 @@ struct PCSelectionView: View {
             Image(systemName: viewModel.isSearching ? "wifi" : "wifi.slash")
                 .font(.system(size: 32, weight: .light))
                 .foregroundStyle(.secondary)
-                .symbolEffect(.pulse, options: .repeating, isActive: viewModel.isSearching)
+                .opacity(viewModel.isSearching ? (pulseOpacity ? 0.4 : 1.0) : 1.0)
+                .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: pulseOpacity)
             
             Text(viewModel.isSearching ? "Searching..." : "No PCs Found")
                 .font(.headline)
@@ -89,6 +91,14 @@ struct PCSelectionView: View {
         .padding(.vertical, 32)
         .padding(.horizontal, 24)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .onAppear {
+            if viewModel.isSearching {
+                pulseOpacity = true
+            }
+        }
+        .onChange(of: viewModel.isSearching) { isSearching in
+            pulseOpacity = isSearching
+        }
     }
     
     private var pcListCards: some View {

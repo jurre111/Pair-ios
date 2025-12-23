@@ -8,6 +8,7 @@ struct ConnectionProgressView: View {
     
     @State private var showUSBInstructions = false
     @State private var pulseAnimation = false
+    @State private var rotationAngle: Double = 0
     
     var body: some View {
         VStack(spacing: 32) {
@@ -28,12 +29,19 @@ struct ConnectionProgressView: View {
                 Image(systemName: isAwaitingUSB ? "cable.connector" : "arrow.triangle.2.circlepath")
                     .font(.system(size: 48, weight: .light))
                     .foregroundStyle(.blue)
-                    .symbolEffect(.rotate, options: .repeating.speed(0.5), isActive: !isAwaitingUSB)
+                    .rotationEffect(.degrees(rotationAngle))
+                    .animation(isAwaitingUSB ? .default : .linear(duration: 2).repeatForever(autoreverses: false), value: rotationAngle)
             }
             .onAppear {
                 withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
                     pulseAnimation = true
                 }
+                if !isAwaitingUSB {
+                    rotationAngle = 360
+                }
+            }
+            .onChange(of: isAwaitingUSB) { awaiting in
+                rotationAngle = awaiting ? 0 : 360
             }
             
             // Status text
