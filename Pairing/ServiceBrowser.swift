@@ -65,8 +65,9 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
         let log = "✓ Found service: \(service.name)"
         print(log)
         addLog(log)
+        addLog("Attempting to resolve address...")
         service.delegate = self
-        service.resolve(withTimeout: 5.0)
+        service.resolve(withTimeout: 10.0)  // Increase timeout to 10 seconds
     }
 
     func netServiceBrowser(_ browser: NetServiceBrowser, didNotSearch errorDict: [String : NSNumber]) {
