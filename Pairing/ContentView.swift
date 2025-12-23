@@ -13,6 +13,7 @@ struct ContentView: View {
     @State private var sidestoreStatus: String? = nil
     @State private var sidestoreError: String? = nil
     @State private var sidestoreWorking = false
+    @State private var sidestoreDisabled = false
 
     var body: some View {
         Group {
@@ -23,11 +24,12 @@ struct ContentView: View {
                         removal: .opacity.combined(with: .move(edge: .leading))
                     ))
             } else {
-                .padding(.vertical, 10)
+                OnboardingView(isOnboardingComplete: $isOnboardingComplete)
+                    .padding(.vertical, 10)
                     .transition(.asymmetric(
                         insertion: .opacity.combined(with: .move(edge: .leading)),
                         removal: .opacity.combined(with: .move(edge: .trailing))
-            .controlSize(.medium)
+                    ))
             }
         }
         .animation(.spring(response: 0.5, dampingFraction: 0.8), value: isOnboardingComplete)
@@ -153,21 +155,28 @@ struct ContentView: View {
                 onDone: {
                     sidestoreStatus = nil
                     sidestoreError = nil
+                        sidestoreDisabled = false
                     viewModel.resetSession()
                 },
                 sidestoreStatus: sidestoreStatus,
                 sidestoreError: sidestoreError,
                 sidestoreWorking: sidestoreWorking,
+                sidestoreDisabled: sidestoreDisabled,
                 onInstallSideStore: {
                     sidestoreStatus = nil
                     sidestoreError = nil
+                    sidestoreDisabled = false
                     sidestoreWorking = true
                     Task {
                         do {
                             let message = try await viewModel.installPairingIntoSideStore()
                             sidestoreStatus = message
                         } catch {
-                            sidestoreError = (error as? PairingError)?.errorDescription ?? error.localizedDescription
+                            let errText = (error as? PairingError)?.errorDescription ?? error.localizedDescription
+                            sidestoreError = errText
+                            if errText.localizedCaseInsensitiveContains("not installed") {
+                                sidestoreDisabled = true
+                            }
                         }
                         sidestoreWorking = false
                     }
@@ -202,11 +211,11 @@ struct ContentView: View {
                         .font(.headline)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
+                .padding(.vertical, 10)
             }
             .buttonStyle(.borderedProminent)
             .tint(.blue)
-            .controlSize(.small)
+            .controlSize(.medium)
             .padding()
             .background(.regularMaterial)
         }

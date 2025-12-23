@@ -7,6 +7,7 @@ struct SuccessView: View {
     var sidestoreStatus: String? = nil
     var sidestoreError: String? = nil
     var sidestoreWorking: Bool = false
+    var sidestoreDisabled: Bool = false
     var onInstallSideStore: (() -> Void)? = nil
     
     @State private var showCheckmark = false
@@ -80,7 +81,7 @@ struct SuccessView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
                     }
-                    .disabled(sidestoreWorking)
+                    .disabled(sidestoreWorking || sidestoreDisabled)
                     .buttonStyle(.borderedProminent)
                     .controlSize(.medium)
 
@@ -93,6 +94,7 @@ struct SuccessView: View {
                         Text(sidestoreError)
                             .font(.footnote)
                             .foregroundStyle(.red)
+                            .multilineTextAlignment(.center)
                     }
                 }
                 

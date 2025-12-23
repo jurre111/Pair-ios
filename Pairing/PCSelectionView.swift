@@ -24,7 +24,7 @@ struct PCSelectionView: View {
         RoundedRectangle(cornerRadius: 20)
             .fill(
                 LinearGradient(
-                    colors: [Color.blue.opacity(0.9), Color.indigo.opacity(0.8)],
+                    colors: [Color.blue.opacity(0.85), Color.indigo.opacity(0.75)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
@@ -39,14 +39,14 @@ struct PCSelectionView: View {
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(.white)
 
-                    Text("Make sure the Pairing Buddy server is running on your PC and you're on the same Wi‑Fi.")
+                    Text("Make sure the Pairing Buddy server is running and you're on the same Wi‑Fi.")
                         .font(.subheadline)
-                        .foregroundStyle(Color.white.opacity(0.85))
+                        .foregroundStyle(Color.white.opacity(0.9))
                         .multilineTextAlignment(.center)
                 }
                 .padding(20)
             )
-            .frame(maxWidth: .infinity, minHeight: 170)
+            .frame(maxWidth: .infinity, minHeight: 150)
     }
     
     // MARK: - PC List
@@ -61,15 +61,19 @@ struct PCSelectionView: View {
                 Spacer()
                 
                 if viewModel.isSearching {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                } else {
-                    Button {
-                        viewModel.refreshDiscovery()
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.subheadline)
+                    HStack(spacing: 6) {
+                        Image(systemName: "wifi")
+                            .foregroundStyle(.blue)
+                        Text("Searching…")
+                            .font(.caption)
+                            .foregroundStyle(.blue)
                     }
+                }
+                Button {
+                    viewModel.refreshDiscovery()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.subheadline)
                 }
             }
             .padding(.horizontal, 4)
@@ -109,7 +113,7 @@ struct PCSelectionView: View {
             Text(viewModel.isSearching ? "Searching..." : "No PCs Found")
                 .font(.headline)
             
-            Text("Make sure the pairing server is running on your PC and both devices are on the same network.")
+            Text("Make sure the pairing server is running and both devices share the same network. Or add a host manually below.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
