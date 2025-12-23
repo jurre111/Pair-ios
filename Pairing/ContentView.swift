@@ -13,7 +13,7 @@ struct ContentView: View {
 
     var body: some View {
         Group {
-            if isOnboardingComplete && !storedUDID.isEmpty {
+            if isOnboardingComplete {
                 mainContent
             } else {
                 OnboardingView(

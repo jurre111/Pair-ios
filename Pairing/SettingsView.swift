@@ -22,9 +22,14 @@ struct SettingsView: View {
                             .foregroundColor(.secondary)
                         
                         if storedUDID.isEmpty {
-                            Text("Not configured")
-                                .font(.body)
-                                .foregroundColor(.orange)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Using device identifier")
+                                    .font(.body)
+                                    .foregroundColor(.secondary)
+                                Text(UIDevice.current.identifierForVendor?.uuidString ?? "Unknown")
+                                    .font(.system(.caption, design: .monospaced))
+                                    .foregroundColor(.secondary)
+                            }
                         } else {
                             Text(storedUDID)
                                 .font(.system(.body, design: .monospaced))
@@ -35,25 +40,25 @@ struct SettingsView: View {
                 } header: {
                     Text("Device Identity")
                 } footer: {
-                    Text("This is the hardware UDID fetched from your PC during setup. It's used to identify your device when requesting pairing files.")
+                    Text("The app works with your device identifier. Optionally fetch the hardware UDID via USB for persistent pairing across devices.")
                 }
                 
                 Section {
                     Button {
                         showingRefreshSheet = true
                     } label: {
-                        Label("Refresh UDID", systemImage: "arrow.clockwise")
+                        Label("Fetch Hardware UDID via USB", systemImage: "arrow.clockwise")
                     }
                     
                     Button(role: .destructive) {
                         showingResetConfirmation = true
                     } label: {
-                        Label("Reset Device Identity", systemImage: "trash")
+                        Label("Reset App", systemImage: "trash")
                     }
                 } header: {
                     Text("Actions")
                 } footer: {
-                    Text("Resetting will clear your stored UDID and require you to complete onboarding again.")
+                    Text("Connect via USB to fetch hardware UDID for persistent pairing, or reset to clear all settings and restart onboarding.")
                 }
                 
                 Section {

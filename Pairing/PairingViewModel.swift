@@ -88,13 +88,8 @@ class PairingViewModel: ObservableObject {
         }
         
         let deviceName = UIDevice.current.name
-        // Use the stored hardware UDID if available, otherwise fall back to identifierForVendor
-        let currentUDID: String
-        if !storedUDID.isEmpty {
-            currentUDID = storedUDID
-        } else {
-            currentUDID = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
-        }
+        // Select UDID: use stored UDID if available, otherwise use identifierForVendor
+        let currentUDID = !storedUDID.isEmpty ? storedUDID : (UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString)
 
         let requestBody: [String: String] = [
             "udid": currentUDID,
