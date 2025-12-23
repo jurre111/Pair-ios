@@ -10,6 +10,9 @@ struct ContentView: View {
     @State private var showingUSBTroubleshoot = false
     @State private var usbPCName: String = ""
     @State private var usbMessage: String? = nil
+    @State private var sidestoreStatus: String? = nil
+    @State private var sidestoreError: String? = nil
+    @State private var sidestoreWorking = false
 
     var body: some View {
         Group {
@@ -59,7 +62,7 @@ struct ContentView: View {
                     isOnboardingComplete: $isOnboardingComplete,
                     viewModel: viewModel,
                     onReset: {
-                        viewModel.reset()
+                        viewModel.resetAll()
                     },
                     onShowUSBHelp: {
                         usbPCName = viewModel.selectedPC?.name ?? "your PC"
@@ -147,7 +150,28 @@ struct ContentView: View {
             SuccessView(
                 fileURL: fileURL,
                 onShare: { showingShareSheet = true },
-                onDone: { viewModel.reset() }
+                onDone: {
+                    sidestoreStatus = nil
+                    sidestoreError = nil
+                    viewModel.resetSession()
+                },
+                sidestoreStatus: sidestoreStatus,
+                sidestoreError: sidestoreError,
+                sidestoreWorking: sidestoreWorking,
+                onInstallSideStore: {
+                    sidestoreStatus = nil
+                    sidestoreError = nil
+                    sidestoreWorking = true
+                    Task {
+                        do {
+                            let message = try await viewModel.installPairingIntoSideStore()
+                            sidestoreStatus = message
+                        } catch {
+                            sidestoreError = (error as? PairingError)?.errorDescription ?? error.localizedDescription
+                        }
+                        sidestoreWorking = false
+                    }
+                }
             )
             .transition(.opacity)
             

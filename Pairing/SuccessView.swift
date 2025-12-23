@@ -4,6 +4,10 @@ struct SuccessView: View {
     let fileURL: URL
     let onShare: () -> Void
     let onDone: () -> Void
+    var sidestoreStatus: String? = nil
+    var sidestoreError: String? = nil
+    var sidestoreWorking: Bool = false
+    var onInstallSideStore: (() -> Void)? = nil
     
     @State private var showCheckmark = false
     @State private var showContent = false
@@ -62,6 +66,35 @@ struct SuccessView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
+
+                if let onInstallSideStore {
+                    Button {
+                        onInstallSideStore()
+                    } label: {
+                        HStack {
+                            if sidestoreWorking {
+                                ProgressView().scaleEffect(0.8)
+                            }
+                            Label("Send to SideStore", systemImage: "square.and.arrow.down")
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                    }
+                    .disabled(sidestoreWorking)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+
+                    if let sidestoreStatus {
+                        Text(sidestoreStatus)
+                            .font(.footnote)
+                            .foregroundStyle(.green)
+                    }
+                    if let sidestoreError {
+                        Text(sidestoreError)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                    }
+                }
                 
                 Button {
                     onDone()

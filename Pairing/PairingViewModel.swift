@@ -337,7 +337,15 @@ class PairingViewModel: ObservableObject {
         state = .selectPC
     }
     
-    func reset() {
+    func resetSession() {
+        usbPollTask?.cancel()
+        usbPollTask = nil
+        state = .selectPC
+        selectedPCId = nil
+        updateDiscoveredPCs(autoPCs: serviceBrowser.discoveredPCs)
+    }
+
+    func resetAll() {
         usbPollTask?.cancel()
         usbPollTask = nil
         state = .selectPC

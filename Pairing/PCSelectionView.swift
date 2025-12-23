@@ -90,11 +90,21 @@ struct PCSelectionView: View {
     
     private var emptyStateCard: some View {
         VStack(spacing: 12) {
-            Image(systemName: viewModel.isSearching ? "wifi" : "wifi.slash")
-                .font(.system(size: 32, weight: .light))
-                .foregroundStyle(viewModel.isSearching ? Color.blue : Color.red)
-                .opacity(viewModel.isSearching ? (pulseOpacity ? 0.4 : 1.0) : 1.0)
-                .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: pulseOpacity)
+            if viewModel.isSearching {
+                HStack(spacing: 6) {
+                    ForEach(0..<3) { idx in
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Color.blue)
+                            .frame(width: 6, height: pulseOpacity ? CGFloat(10 + idx * 4) : CGFloat(18 + idx * 4))
+                            .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true).delay(0.08 * Double(idx)), value: pulseOpacity)
+                    }
+                }
+                .padding(.top, 4)
+            } else {
+                Image(systemName: "wifi.slash")
+                    .font(.system(size: 32, weight: .light))
+                    .foregroundStyle(Color.red)
+            }
             
             Text(viewModel.isSearching ? "Searching..." : "No PCs Found")
                 .font(.headline)
