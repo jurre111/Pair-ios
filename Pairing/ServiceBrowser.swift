@@ -8,7 +8,7 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
 
     func startBrowsing() {
         browser.delegate = self
-        browser.searchForServices(ofType: "_pairing._tcp.", inDomain: "")
+        browser.searchForServices(ofType: "_pairing._tcp.", inDomain: "local.")
     }
 
     func stopBrowsing() {
