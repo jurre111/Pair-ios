@@ -5,28 +5,29 @@ struct SettingsView: View {
     @Binding var isOnboardingComplete: Bool
     @ObservedObject var viewModel: PairingViewModel
     var onReset: (() -> Void)?
-    
+
     @State private var showingResetConfirmation = false
-    
+
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
     }
-    
+
     private var buildNumber: String {
-        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""
     }
-    
+
     var body: some View {
         NavigationStack {
             List {
                 // Saved PCs Section
                 Section {
-                    let available = viewModel.availableSavedPCs()
-                    if available.isEmpty {
-                        Label("No saved PCs available right now", systemImage: "tray")
+                    let saved = viewModel.savedPCs
+                    if saved.isEmpty {
+                        Label("No saved PCs yet", systemImage: "tray")
                             .foregroundStyle(.secondary)
                     } else {
-                        ForEach(available) { pc in
+                        ForEach(saved) { pc in
+                            let isAvailable = viewModel.isSavedPCAvailable(pc)
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(pc.name)
@@ -43,6 +44,12 @@ struct SettingsView: View {
                                         .padding(.vertical, 3)
                                         .background(Color(.systemGray5), in: Capsule())
                                 }
+                                Text(isAvailable ? "Available" : "Offline")
+                                    .font(.caption2.weight(.semibold))
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 4)
+                                    .background((isAvailable ? Color.green.opacity(0.15) : Color.gray.opacity(0.12)), in: Capsule())
+                                    .foregroundStyle(isAvailable ? Color.green : Color.secondary)
                                 Button(role: .destructive) {
                                     withAnimation {
                                         viewModel.removeSavedPC(id: pc.id)
@@ -56,13 +63,12 @@ struct SettingsView: View {
                                 .tint(.red)
                             }
                         }
-                                        let saved = viewModel.savedPCs
-                                        if saved.isEmpty {
-                                            Label("No saved PCs yet", systemImage: "tray")
-                                                .foregroundStyle(.secondary)
-                    Text("Saved PCs show up here when they're available on your network.")
-                                            ForEach(saved) { pc in
-                                                let isAvailable = viewModel.isSavedPCAvailable(pc)
+                    }
+                } header: {
+                    Text("Saved PCs")
+                } footer: {
+                    Text("Saved PCs stay listed here; offline ones reappear when available.")
+                }
 
                 // Device Info Section
                 Section {
@@ -72,24 +78,17 @@ struct SettingsView: View {
                         Text(UIDevice.current.name)
                             .foregroundStyle(.secondary)
                     }
-                    
+
                     HStack {
                         Label("iOS Version", systemImage: "gear")
                         Spacer()
                         Text(UIDevice.current.systemVersion)
                             .foregroundStyle(.secondary)
-                                                    }
-                                                    Text(isAvailable ? "Available" : "Offline")
-                                                        .font(.caption2.weight(.semibold))
-                                                        .padding(.horizontal, 6)
-                                                        .padding(.vertical, 4)
-                                                        .background((isAvailable ? Color.green.opacity(0.15) : Color.gray.opacity(0.12)), in: Capsule())
-                                                        .foregroundStyle(isAvailable ? Color.green : Color.secondary)
                     }
                 } header: {
                     Text("Device Information")
                 }
-                
+
                 // Reset Section
                 Section {
                     Button(role: .destructive) {
@@ -105,7 +104,7 @@ struct SettingsView: View {
                 } footer: {
                     Text("Clears all app data including saved PCs, settings, and shows the welcome screen.")
                 }
-                
+
                 // About Section
                 Section {
                     HStack {
@@ -154,22 +153,19 @@ struct SettingsView: View {
             }
         }
     }
-    
+
     private func resetApp() {
-        // Clear all AppStorage values
         UserDefaults.standard.removeObject(forKey: Constants.StorageKeys.isOnboardingComplete)
         UserDefaults.standard.removeObject(forKey: Constants.StorageKeys.savedManualIPs)
         UserDefaults.standard.removeObject(forKey: Constants.StorageKeys.lastSelectedPC)
         UserDefaults.standard.removeObject(forKey: Constants.StorageKeys.savedPCs)
-        
-        // Notify parent to reset any in-memory state
+
         onReset?()
-        
-        // Update binding to trigger UI change
+
         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
             isOnboardingComplete = false
         }
-        
+
         dismiss()
     }
 }
