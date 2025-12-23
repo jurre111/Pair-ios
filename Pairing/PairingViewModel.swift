@@ -6,6 +6,7 @@ class PairingViewModel: ObservableObject {
     @Published var status: String = "Searching for PCs..."
     @Published var showUSBAlert = false
     @Published var pairingFileSaved = false
+    @Published var pairingFileURL: URL?
     @Published var discoveredPCs: [String: URL] = [:]
     @Published var errorMessage: String?
     @Published var isSearchingForServices: Bool = true
@@ -101,6 +102,8 @@ class PairingViewModel: ObservableObject {
 
         status = "Requesting pairing from \(pcName)..."
         errorMessage = nil
+        pairingFileSaved = false
+        pairingFileURL = nil
         URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 if let error = error {
@@ -238,5 +241,8 @@ class PairingViewModel: ObservableObject {
         let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let fileURL = documentsURL.appendingPathComponent("\(udid).mobiledevicepairing")
         try? data.write(to: fileURL)
+        DispatchQueue.main.async {
+            self.pairingFileURL = fileURL
+        }
     }
 }

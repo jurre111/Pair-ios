@@ -4,6 +4,7 @@ struct ContentView: View {
     @StateObject private var viewModel = PairingViewModel()
     @State private var selectedPC: String?
     @State private var manualIP: String = ""
+    @State private var showingShareSheet = false
 
     var body: some View {
         NavigationView {
@@ -31,6 +32,11 @@ struct ContentView: View {
             } message: {
                 Text("Please plug in your iPhone to the PC via USB cable to finish pairing.")
             }
+            .sheet(isPresented: $showingShareSheet) {
+                if let fileURL = viewModel.pairingFileURL {
+                    ShareSheet(activityItems: [fileURL])
+                }
+            }
         }
     }
 
@@ -57,6 +63,18 @@ struct ContentView: View {
                     .foregroundColor(.green)
                     .font(.footnote)
             }
+
+            if viewModel.pairingFileURL != nil {
+                Button("Share pairing file…") {
+                    showingShareSheet = true
+                }
+                .font(.footnote)
+            }
+
+            Button(viewModel.showDebugLogs ? "Hide discovery logs" : "Show discovery logs") {
+                viewModel.showDebugLogs.toggle()
+            }
+            .font(.footnote)
         }
         .padding()
         .frame(maxWidth: .infinity)
