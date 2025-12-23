@@ -35,13 +35,13 @@ struct ContentView: View {
         NavigationStack {
             ZStack {
                 // Background
-                Color(.systemGroupedBackground)
+                LinearGradient(colors: [Color.blue.opacity(0.08), Color.indigo.opacity(0.04)], startPoint: .topLeading, endPoint: .bottomTrailing)
                     .ignoresSafeArea()
                 
                 // Content based on state
                 stateBasedContent
             }
-            .navigationTitle("Pairing")
+            .navigationTitle("PairingBuddy")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if case .selectPC = viewModel.state {
@@ -55,10 +55,16 @@ struct ContentView: View {
                 }
             }
             .sheet(isPresented: $showingSettings) {
-                SettingsView(isOnboardingComplete: $isOnboardingComplete, viewModel: viewModel) {
-                    // Reset callback - clear in-memory state
-                    viewModel.reset()
-                }
+                SettingsView(
+                    isOnboardingComplete: $isOnboardingComplete,
+                    viewModel: viewModel,
+                    onReset: {
+                        viewModel.reset()
+                    },
+                    onShowUSBHelp: {
+                        showingUSBTroubleshoot = true
+                    }
+                )
             }
             .sheet(isPresented: $showingShareSheet) {
                 if case .success(let fileURL) = viewModel.state {
@@ -79,12 +85,10 @@ struct ContentView: View {
             viewModel.loadSavedManualIPs()
         }
         .onChange(of: viewModel.state) { state in
-            switch state {
-            case .awaitingUSB(let pcName, let message):
+            if case .awaitingUSB(let pcName, let message) = state {
                 usbPCName = pcName
                 usbMessage = message
-                showingUSBTroubleshoot = true
-            default:
+            } else {
                 showingUSBTroubleshoot = false
             }
         }
@@ -110,7 +114,8 @@ struct ContentView: View {
                 pcName: pcName,
                 isAwaitingUSB: false,
                 usbMessage: nil,
-                onCancel: { viewModel.cancel() }
+                onCancel: { viewModel.cancel() },
+                onShowUSBHelp: { showingUSBTroubleshoot = true }
             )
             .transition(.opacity)
             
@@ -119,7 +124,8 @@ struct ContentView: View {
                 pcName: pcName,
                 isAwaitingUSB: true,
                 usbMessage: message,
-                onCancel: { viewModel.cancel() }
+                onCancel: { viewModel.cancel() },
+                onShowUSBHelp: { showingUSBTroubleshoot = true }
             )
             .transition(.opacity)
             
@@ -161,6 +167,7 @@ struct ContentView: View {
                 .padding(.vertical, 12)
             }
             .buttonStyle(.borderedProminent)
+            .tint(.blue)
             .controlSize(.regular)
             .padding()
             .background(.regularMaterial)

@@ -5,6 +5,7 @@ struct SettingsView: View {
     @Binding var isOnboardingComplete: Bool
     @ObservedObject var viewModel: PairingViewModel
     var onReset: (() -> Void)?
+    var onShowUSBHelp: (() -> Void)? = nil
 
     @State private var showingResetConfirmation = false
 
@@ -121,8 +122,12 @@ struct SettingsView: View {
 
                 // Support Section
                 Section {
-                    Label("USB Troubleshooting", systemImage: "bolt.fill")
-                        .foregroundStyle(.primary)
+                    Button {
+                        onShowUSBHelp?()
+                    } label: {
+                        Label("USB Troubleshooting", systemImage: "bolt.fill")
+                    }
+                    .buttonStyle(.plain)
                     Label("Need help? Contact your admin.", systemImage: "questionmark.circle")
                         .foregroundStyle(.secondary)
                 } header: {

@@ -5,6 +5,7 @@ struct ConnectionProgressView: View {
     let isAwaitingUSB: Bool
     let usbMessage: String?
     let onCancel: () -> Void
+    let onShowUSBHelp: () -> Void
     
     @State private var showUSBInstructions = false
     @State private var pulseAnimation = false
@@ -74,6 +75,24 @@ struct ConnectionProgressView: View {
                     .padding(.horizontal, 32)
             }
             .buttonStyle(.plain)
+
+            if isAwaitingUSB {
+                Button {
+                    onShowUSBHelp()
+                } label: {
+                    Text("Need USB help?")
+                        .font(.body.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.regular)
+                .tint(.blue)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
+            }
+
+            Spacer(minLength: 0)
             .padding(.bottom, 32)
         }
         .padding()
@@ -126,7 +145,8 @@ struct ConnectionProgressView: View {
         pcName: "MacBook-Pro",
         isAwaitingUSB: false,
         usbMessage: nil,
-        onCancel: {}
+        onCancel: {},
+        onShowUSBHelp: {}
     )
 }
 
@@ -135,6 +155,7 @@ struct ConnectionProgressView: View {
         pcName: "MacBook-Pro",
         isAwaitingUSB: true,
         usbMessage: "Please connect via USB",
-        onCancel: {}
+        onCancel: {},
+        onShowUSBHelp: {}
     )
 }

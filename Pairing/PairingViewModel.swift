@@ -332,10 +332,6 @@ class PairingViewModel: ObservableObject {
         usbPollTask = nil
         state = .selectPC
         selectedPCId = nil
-        savedPCs.removeAll()
-        manualPCs.removeAll()
-        saveManualIPs()
-        persistSavedPCs()
         updateDiscoveredPCs(autoPCs: serviceBrowser.discoveredPCs)
     }
     

@@ -2,10 +2,10 @@ import SwiftUI
 
 struct PCSelectionView: View {
     @ObservedObject var viewModel: PairingViewModel
-    @State private var showManualEntry = false
     @State private var manualIP = ""
     @State private var pulseOpacity = false
     @FocusState private var isManualIPFocused: Bool
+    @State private var shimmer = false
     
     var body: some View {
         ScrollView {
@@ -22,20 +22,70 @@ struct PCSelectionView: View {
     // MARK: - Header
     
     private var headerSection: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "desktopcomputer")
-                .font(.system(size: 48, weight: .light))
-                .foregroundStyle(.blue)
-            
-            Text("Select Your PC")
-                .font(.title2.weight(.semibold))
-            
-            Text("Choose a PC running the pairing server")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+        ZStack {
+            RoundedRectangle(cornerRadius: 20)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.blue.opacity(0.9), Color.indigo.opacity(0.8)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    ZStack {
+                        Circle()
+                            .fill(Color.white.opacity(0.15))
+                            .frame(width: shimmer ? 180 : 140, height: shimmer ? 180 : 140)
+                            .offset(x: -80, y: -50)
+                        Circle()
+                            .fill(Color.white.opacity(0.12))
+                            .frame(width: shimmer ? 220 : 160, height: shimmer ? 220 : 160)
+                            .offset(x: 90, y: 60)
+                    }
+                )
+                .animation(.easeInOut(duration: 3).repeatForever(autoreverses: true), value: shimmer)
+            VStack(spacing: 10) {
+                HStack {
+                    Image(systemName: "desktopcomputer")
+                        .font(.system(size: 42, weight: .semibold))
+                        .foregroundStyle(.white)
+                    Spacer()
+                    Text("Live")
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.white.opacity(0.18), in: Capsule())
+                        .foregroundStyle(.white)
+                }
+                .frame(maxWidth: .infinity)
+                
+                VStack(spacing: 6) {
+                    Text("Select Your PC")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.white)
+                    Text("Choose a PC running the pairing server")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.white.opacity(0.8))
+                        .multilineTextAlignment(.center)
+                }
+                
+                HStack(spacing: 12) {
+                    statusPill(icon: "antenna.radiowaves.left.and.right", text: viewModel.isSearching ? "Scanning" : "Ready")
+                    statusPill(icon: "bolt.fill", text: viewModel.canConnect ? "Good to connect" : "Select a PC")
+                }
+            }
+            .padding(20)
         }
-        .padding(.vertical, 8)
+        .onAppear { shimmer = true }
+    }
+
+    private func statusPill(icon: String, text: String) -> some View {
+        Label(text, systemImage: icon)
+            .font(.caption.weight(.semibold))
+            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+            .background(Color.white.opacity(0.16), in: Capsule())
+            .foregroundStyle(.white)
     }
     
     // MARK: - PC List
@@ -133,72 +183,48 @@ struct PCSelectionView: View {
     
     private var manualEntrySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Manual Address")
-                        .font(.headline)
-                    Text("Enter IP or hostname")
-                        .font(.caption)
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Manual Address")
+                    .font(.headline)
+                Text("Enter IP or hostname to add it to your list and select it immediately.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                HStack(spacing: 10) {
+                    Image(systemName: "network")
                         .foregroundStyle(.secondary)
+                    TextField("192.168.1.100", text: $manualIP)
+                        .textFieldStyle(.plain)
+                        .keyboardType(.URL)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                        .focused($isManualIPFocused)
                 }
-                Spacer()
+                .padding(12)
+                .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(Color(.systemGray4), lineWidth: 1)
+                )
+
                 Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                        showManualEntry.toggle()
-                        if showManualEntry {
-                            isManualIPFocused = true
-                        }
+                    if viewModel.addManualPC(ip: manualIP) {
+                        manualIP = ""
+                        isManualIPFocused = false
                     }
                 } label: {
-                    Image(systemName: showManualEntry ? "chevron.up.circle.fill" : "plus.circle.fill")
-                        .font(.title3)
-                        .foregroundStyle(.blue)
-                        .symbolRenderingMode(.hierarchical)
+                    Text("Save & Select")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.regular)
+                .tint(.blue)
+                .disabled(manualIP.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .padding(14)
             .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
-            
-            if showManualEntry {
-                VStack(spacing: 12) {
-                    HStack(spacing: 10) {
-                        Image(systemName: "network")
-                            .foregroundStyle(.secondary)
-                        TextField("192.168.1.100", text: $manualIP)
-                            .textFieldStyle(.plain)
-                            .keyboardType(.URL)
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
-                            .focused($isManualIPFocused)
-                    }
-                    .padding(12)
-                    .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 12))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .strokeBorder(Color(.systemGray4), lineWidth: 1)
-                    )
-                    
-                    Button {
-                        if viewModel.addManualPC(ip: manualIP) {
-                            manualIP = ""
-                            showManualEntry = false
-                            isManualIPFocused = false
-                        }
-                    } label: {
-                        Text("Save & Select")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.regular)
-                    .disabled(manualIP.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
-                .padding(14)
-                .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
         }
     }
 }

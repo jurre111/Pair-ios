@@ -53,7 +53,7 @@ struct USBTroubleshootView: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             } else {
-                Text("Connect to \(pcName) with the tips below.")
+                Text("Connect to \(pcName.isEmpty ? "your PC" : pcName) with the tips below.")
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
