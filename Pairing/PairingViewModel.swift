@@ -9,8 +9,9 @@ class PairingViewModel: ObservableObject {
     @Published var discoveredPCs: [String: URL] = [:]
     @Published var errorMessage: String?
     @Published var isSearchingForServices: Bool = true
+    @Published var showDebugLogs: Bool = false
 
-    private let serviceBrowser = ServiceBrowser()
+    let serviceBrowser = ServiceBrowser()
     private var manualPCs: [String: URL] = [:]
     private var cancellables = Set<AnyCancellable>()
     private var usbRetryRemaining = 0
@@ -48,12 +49,24 @@ class PairingViewModel: ObservableObject {
         print("🚀 Starting initial discovery (this should trigger Local Network permission)")
         serviceBrowser.startBrowsing()
         
-        // Stop searching indicator after 10 seconds
+        // Stop searching indicator after 10 seconds and update status
         DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
             guard let self = self else { return }
             if self.discoveredPCs.isEmpty {
                 self.isSearchingForServices = false
-                self.status = "No PCs found. Check Local Network permission in Settings."
+                if !self.serviceBrowser.hasPermission {
+                    self.status = "Discovery failed. Check permissions below."
+                    self.errorMessage = "Go to Settings → Pairing → Local Network and enable it"
+                    self.showDebugLogs = true
+                } else if self.serviceBrowser.searchFailed {
+                    self.status = "Network discovery unavailable"
+                    self.errorMessage = "Use Manual PC Entry below"
+                    self.showDebugLogs = true
+                } else {
+                    self.status = "No PCs found on this network"
+                    self.errorMessage = "Make sure the server is running and you're on the same WiFi"
+                    self.showDebugLogs = true
+                }
             }
         }
     }

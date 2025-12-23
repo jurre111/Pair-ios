@@ -15,6 +15,11 @@ struct ContentView: View {
                     VStack(spacing: 24) {
                         statusHeader
                         discoveredSection
+                        
+                        if viewModel.showDebugLogs {
+                            debugLogsSection
+                        }
+                        
                         manualEntrySection
                     }
                     .padding()
@@ -91,6 +96,14 @@ struct ContentView: View {
                         .foregroundColor(.orange)
                         .multilineTextAlignment(.center)
                         .padding(.top, 4)
+                    
+                    if !viewModel.isSearchingForServices && !viewModel.serviceBrowser.debugLogs.isEmpty {
+                        Button("Show Discovery Logs") {
+                            viewModel.showDebugLogs = true
+                        }
+                        .font(.caption)
+                        .padding(.top, 8)
+                    }
                 }
                 .padding()
                 .frame(maxWidth: .infinity)
@@ -168,6 +181,41 @@ struct ContentView: View {
                     }
                 }
                 .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding()
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18))
+    }
+    
+    private var debugLogsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Discovery Logs")
+                    .font(.headline)
+                Spacer()
+                Button("Hide") {
+                    viewModel.showDebugLogs = false
+                }
+                .buttonStyle(.borderless)
+                .font(.caption)
+            }
+            
+            if viewModel.serviceBrowser.debugLogs.isEmpty {
+                Text("No logs yet")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(viewModel.serviceBrowser.debugLogs, id: \.self) { log in
+                            Text(log)
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundColor(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                }
+                .frame(maxHeight: 200)
             }
         }
         .padding()

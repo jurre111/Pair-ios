@@ -5,35 +5,53 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
     private var browser = NetServiceBrowser()
     @Published var services: [NetService] = []
     @Published var discoveredPCs: [String: URL] = [:] // name to URL
+    @Published var debugLogs: [String] = []
+    @Published var hasPermission: Bool = false
+    @Published var searchFailed: Bool = false
 
     func startBrowsing() {
-        print("🔍 Starting mDNS service discovery...")
-        print("   Current discoveredPCs count: \(discoveredPCs.count)")
+        let log = "🔍 Starting mDNS service discovery..."
+        print(log)
+        addLog(log)
+        
         browser.stop()
         browser = NetServiceBrowser()
         browser.includesPeerToPeer = true
         browser.delegate = self
         services.removeAll()
+        searchFailed = false
+        hasPermission = false
         
         DispatchQueue.main.async {
             self.discoveredPCs.removeAll()
         }
         
-        // Search in both default and local domains for maximum compatibility
-        print("   Searching for: _pairing._tcp.")
-        print("   NOTE: If you haven't granted Local Network permission, this won't find anything.")
+        addLog("Searching for service type: _pairing._tcp.")
         browser.searchForServices(ofType: "_pairing._tcp.", inDomain: "")
-        print("   Browser started, waiting for services...")
+        addLog("Browser started, waiting for services...")
         
-        // Add timeout to stop searching indicator after reasonable time
+        // Add timeout to show detailed logs
         DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
             guard let self = self else { return }
             if self.discoveredPCs.isEmpty {
-                print("⏱️ 10 second discovery timeout - no services found")
-                print("   This usually means:")
-                print("   1. Local Network permission was denied")
-                print("   2. No servers are advertising on the network")
-                print("   3. Router is blocking mDNS multicast")
+                self.addLog("⏱️ Discovery timeout after 10 seconds")
+                if !self.hasPermission {
+                    self.addLog("❌ Local Network permission not granted or search failed")
+                } else if self.searchFailed {
+                    self.addLog("❌ Search failed - check iOS Settings → Pairing → Local Network")
+                } else {
+                    self.addLog("⚠️ No servers found on network")
+                    self.addLog("Possible causes: Server not running, different WiFi network, or router blocking mDNS")
+                }
+            }
+        }
+    }
+    
+    private func addLog(_ message: String) {
+        DispatchQueue.main.async {
+            self.debugLogs.append("[\(Date().formatted(date: .omitted, time: .standard))] \(message)")
+            if self.debugLogs.count > 20 {
+                self.debugLogs.removeFirst()
             }
         }
     }
@@ -44,25 +62,36 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
 
     // NetServiceBrowserDelegate
     func netServiceBrowser(_ browser: NetServiceBrowser, didFind service: NetService, moreComing: Bool) {
-        print("✓ Found service: \(service.name) (domain: \(service.domain), type: \(service.type))")
+        let log = "✓ Found service: \(service.name)"
+        print(log)
+        addLog(log)
         service.delegate = self
         service.resolve(withTimeout: 5.0)
     }
 
     func netServiceBrowser(_ browser: NetServiceBrowser, didNotSearch errorDict: [String : NSNumber]) {
-        print("✗ Service browser failed to search: \(errorDict)")
-        if let errorCode = errorDict[NetService.errorCode] {
-            print("   Error code: \(errorCode)")
+        searchFailed = true
+        let errorCode = errorDict[NetService.errorCode]?.intValue ?? -1
+        let log = "✗ Search failed with error code: \(errorCode)"
+        print(log)
+        addLog(log)
+        
+        if errorCode == -72000 {
+            addLog("Error -72000: Local Network permission denied")
         }
     }
     
     func netServiceBrowserDidStopSearch(_ browser: NetServiceBrowser) {
-        print("⚠️ Service browser stopped searching")
+        let log = "⚠️ Browser stopped searching"
+        print(log)
+        addLog(log)
     }
     
     func netServiceBrowserWillSearch(_ browser: NetServiceBrowser) {
-        print("▶️ Service browser will start searching")
-        print("   ✓ Local Network permission granted (or this callback wouldn't fire)")
+        hasPermission = true
+        let log = "▶️ Search started - Local Network permission granted"
+        print(log)
+        addLog(log)
     }
 
     func netServiceBrowser(_ browser: NetServiceBrowser, didRemove service: NetService, moreComing: Bool) {
@@ -82,12 +111,16 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
             .sorted(by: preferIPv4)
 
         if let bestURL = urls.first {
-            print("✓ Resolved \(sender.name) to \(bestURL)")
+            let log = "✓ Resolved \(sender.name) → \(bestURL.host ?? "unknown"):5000"
+            print(log)
+            addLog(log)
             DispatchQueue.main.async {
                 self.discoveredPCs[sender.name] = bestURL
             }
         } else {
-            print("✗ Could not create URL for \(sender.name)")
+            let log = "✗ Could not resolve address for \(sender.name)"
+            print(log)
+            addLog(log)
         }
         DispatchQueue.main.async {
             self.services.append(sender)
@@ -95,7 +128,9 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
     }
     
     func netService(_ sender: NetService, didNotResolve errorDict: [String : NSNumber]) {
-        print("✗ Failed to resolve \(sender.name): \(errorDict)")
+        let log = "✗ Failed to resolve \(sender.name)"
+        print(log)
+        addLog(log)
     }
 
     private func makeURL(from data: Data, port: Int) -> URL? {
