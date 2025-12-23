@@ -125,7 +125,7 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
             return
         }
 
-        // Prefer IPv4; fall back to IPv6 with proper formatting
+        // Try to get URLs from addresses, preferring IPv4
         let urls = addresses
             .compactMap { makeURL(from: $0, port: Int(sender.port)) }
             .sorted(by: preferIPv4)
@@ -136,6 +136,19 @@ class ServiceBrowser: NSObject, NetServiceBrowserDelegate, NetServiceDelegate, O
             addLog(log)
             DispatchQueue.main.async {
                 self.discoveredPCs[sender.name] = bestURL
+            }
+        } else if let hostName = sender.hostName, sender.port > 0 {
+            // Fallback: use the hostname directly (e.g., jurre-Latitude-3120.local)
+            let cleanHost = hostName.hasSuffix(".") ? String(hostName.dropLast()) : hostName
+            if let fallbackURL = URL(string: "http://\(cleanHost):\(sender.port)") {
+                let log = "✓ Using hostname fallback: \(fallbackURL)"
+                print(log)
+                addLog(log)
+                DispatchQueue.main.async {
+                    self.discoveredPCs[sender.name] = fallbackURL
+                }
+            } else {
+                addLog("✗ Could not create fallback URL from hostname \(hostName)")
             }
         } else {
             let log = "✗ Could not create URL from \(addresses.count) address(es)"
