@@ -5,10 +5,13 @@ struct OnboardingView: View {
     @Binding var storedUDID: String
     
     @State private var currentStep = 0
-    @State private var serverIP: String = ""
     @State private var isCheckingUSB = false
     @State private var errorMessage: String?
     @State private var fetchedDevice: DeviceInfo?
+    @State private var discoveredServers: [String: URL] = [:]
+    @State private var selectedServer: String?
+    
+    @StateObject private var serviceBrowser = ServiceBrowser()
     
     struct DeviceInfo {
         let udid: String
@@ -21,7 +24,7 @@ struct OnboardingView: View {
             VStack(spacing: 0) {
                 // Progress indicator
                 HStack(spacing: 8) {
-                    ForEach(0..<3) { step in
+                    ForEach(0..<2) { step in
                         Capsule()
                             .fill(step <= currentStep ? Color.blue : Color.gray.opacity(0.3))
                             .frame(height: 4)
@@ -38,8 +41,6 @@ struct OnboardingView: View {
                     case 0:
                         welcomeStep
                     case 1:
-                        connectServerStep
-                    case 2:
                         connectUSBStep
                     default:
                         EmptyView()
@@ -66,14 +67,13 @@ struct OnboardingView: View {
                     
                     Spacer()
                     
-                    if currentStep < 2 {
+                    if currentStep < 1 {
                         Button("Next") {
                             withAnimation {
                                 advanceStep()
                             }
                         }
                         .buttonStyle(.borderedProminent)
-                        .disabled(!canAdvance)
                     }
                 }
                 .padding(.horizontal, 40)
@@ -81,17 +81,12 @@ struct OnboardingView: View {
             }
             .navigationTitle("Setup")
             .navigationBarTitleDisplayMode(.inline)
-        }
-    }
-    
-    private var canAdvance: Bool {
-        switch currentStep {
-        case 0:
-            return true
-        case 1:
-            return !serverIP.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        default:
-            return false
+            .onAppear {
+                serviceBrowser.startBrowsing()
+            }
+            .onChange(of: serviceBrowser.discoveredPCs) { newValue in
+                discoveredServers = newValue
+            }
         }
     }
     
@@ -99,9 +94,7 @@ struct OnboardingView: View {
         switch currentStep {
         case 0:
             currentStep = 1
-        case 1:
-            currentStep = 2
-            // Start checking for USB device
+            // Start checking for USB device immediately
             checkUSBDevice()
         default:
             break
@@ -119,37 +112,11 @@ struct OnboardingView: View {
             Text("Welcome to Pairing")
                 .font(.largeTitle.weight(.bold))
             
-            Text("This app helps you create pairing files for your iOS device to connect with a PC.\n\nYou'll need to connect to your PC via USB once to establish trust and fetch your device identity.")
+            Text("This app helps you create pairing files for your iOS device to connect with a PC.\n\nMake sure the Pairing Server is running on your PC, then tap Next to connect via USB.")
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
-        }
-    }
-    
-    private var connectServerStep: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "desktopcomputer")
-                .font(.system(size: 80))
-                .foregroundColor(.blue)
-            
-            Text("Connect to PC")
-                .font(.largeTitle.weight(.bold))
-            
-            Text("Enter the IPv4 address of your PC running the pairing server.\n\nExample: 192.168.1.100")
-                .font(.body)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
-            
-            TextField("PC IPv4 Address", text: $serverIP)
-                .textFieldStyle(.roundedBorder)
-                .keyboardType(.decimalPad)
-                .padding(.horizontal, 60)
-            
-            Text("Make sure the Pairing Server app is running on your PC")
-                .font(.caption)
-                .foregroundColor(.secondary)
         }
     }
     
@@ -241,10 +208,18 @@ struct OnboardingView: View {
         errorMessage = nil
         fetchedDevice = nil
         
-        let trimmedIP = serverIP.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let url = buildIPv4URL(from: trimmedIP)?.appendingPathComponent("usb_check") else {
+        // Try all discovered servers
+        guard !discoveredServers.isEmpty else {
             isCheckingUSB = false
-            errorMessage = "Enter a numeric IPv4, e.g. 192.168.1.10"
+            errorMessage = "No server found. Make sure the Pairing Server is running on your PC and you're on the same Wi-Fi."
+            return
+        }
+        
+        // Try the first discovered server
+        let serverURL = Array(discoveredServers.values)[0]
+        guard let url = serverURL.appendingPathComponent("usb_check") as URL? else {
+            isCheckingUSB = false
+            errorMessage = "Invalid server address"
             return
         }
         
@@ -281,25 +256,6 @@ struct OnboardingView: View {
                 }
             }
         }.resume()
-    }
-    
-    private func buildIPv4URL(from input: String) -> URL? {
-        // Accept forms like 192.168.1.10 or 192.168.1.10:5000
-        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        let parts = trimmed.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: true)
-        guard let hostPart = parts.first, isValidIPv4(String(hostPart)) else { return nil }
-        let portPart = parts.count == 2 ? parts[1] : "5000"
-        guard let port = Int(portPart), (1...65535).contains(port) else { return nil }
-        return URL(string: "http://\(hostPart):\(port)")
-    }
-
-    private func isValidIPv4(_ text: String) -> Bool {
-        let comps = text.split(separator: ".")
-        guard comps.count == 4 else { return false }
-        return comps.allSatisfy { part in
-            guard let n = Int(part), (0...255).contains(n) else { return false }
-            return String(n) == part
-        }
     }
 }
 

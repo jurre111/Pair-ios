@@ -221,7 +221,7 @@ struct ContentView: View {
             Text("Manual PC")
                 .font(.headline)
 
-            Text("Paste the local IPv4 address of your PC and an optional port (default 5000). Example: 192.168.2.10:5000")
+            Text("Paste the local IP address of your PC and an optional port (default 5000). Example: 192.168.2.10:5000")
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
