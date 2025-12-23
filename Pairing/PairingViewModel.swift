@@ -122,18 +122,24 @@ class PairingViewModel: ObservableObject {
         for (name, url) in manualPCs {
             pcs.append(DiscoveredPC(id: name, name: name, url: url, isManual: true))
         }
-        
-        // Sort by name
-        discoveredPCs = pcs.sorted { $0.name < $1.name }
 
-        if let selected = selectedPCId,
-           !discoveredPCs.contains(where: { $0.id == selected }) {
-            selectedPCId = nil
-        }
-        
-        // Stop searching indicator when we find something
-        if !pcs.isEmpty {
-            isSearching = false
+        // Filter to only reachable hosts so offline boxes don't linger as "available".
+        Task.detached { [weak self] in
+            guard let self else { return }
+            let reachable = pcs.filter { self.isHostReachable(host: $0.url.host ?? $0.id) }
+            await MainActor.run {
+                self.discoveredPCs = reachable.sorted { $0.name < $1.name }
+
+                if let selected = self.selectedPCId,
+                   !self.discoveredPCs.contains(where: { $0.id == selected }) {
+                    self.selectedPCId = nil
+                }
+
+                // Stop searching indicator when we find something reachable
+                if !reachable.isEmpty {
+                    self.isSearching = false
+                }
+            }
         }
     }
     
@@ -417,17 +423,16 @@ class PairingViewModel: ObservableObject {
     }
 
     func availableSavedPCs() -> [SavedPC] {
-        savedPCs.filter { saved in
-            if saved.isManual { return manualPCs[saved.id] != nil }
-            return discoveredPCs.contains { $0.displayAddress == saved.address || $0.id == saved.id || $0.name == saved.name }
-        }
+        savedPCs.filter { isSavedPCAvailable($0) }
     }
 
     func isSavedPCAvailable(_ pc: SavedPC) -> Bool {
+        let host = pc.address
         if pc.isManual {
-            return isHostReachable(host: pc.address)
+            return isHostReachable(host: host)
         }
-        return discoveredPCs.contains { $0.displayAddress == pc.address || $0.id == pc.id || $0.name == pc.name }
+        let isDiscovered = discoveredPCs.contains { $0.displayAddress == pc.address || $0.id == pc.id || $0.name == pc.name }
+        return isDiscovered && isHostReachable(host: host)
     }
 
     private func isHostReachable(host: String) -> Bool {
