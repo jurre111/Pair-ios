@@ -9,18 +9,18 @@ struct SideStoreUploadView: View {
 
     var body: some View {
         ZStack {
-            AnimatedBackdrop()
-            VStack(spacing: 32) {
-                Spacer(minLength: 20)
+            CalmBackdrop()
 
-                RadiantOrbit(isWorking: isWorking)
-                    .frame(width: 360, height: 360)
+            VStack(spacing: 28) {
+                Spacer(minLength: 40)
+
+                SimpleBadge(isWorking: isWorking)
+                    .frame(width: 240, height: 240)
 
                 VStack(spacing: 10) {
                     Text(isWorking ? "Uploading to SideStore" : (error == nil ? "Uploaded to SideStore" : "Upload Failed"))
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(.primary)
-                        .transition(.opacity)
 
                     if let status, !isWorking, error == nil {
                         Text(status)
@@ -39,7 +39,7 @@ struct SideStoreUploadView: View {
                     }
                 }
 
-                Spacer(minLength: 12)
+                Spacer(minLength: 24)
 
                 Button {
                     onClose()
@@ -49,9 +49,9 @@ struct SideStoreUploadView: View {
                 }
                 .buttonStyle(PrimaryBlueButtonStyle())
                 .padding(.horizontal, 20)
-                .padding(.bottom, 28)
+                .padding(.bottom, 24)
                 .disabled(isWorking)
-                .opacity(isWorking ? 0.75 : 1)
+                .opacity(isWorking ? 0.8 : 1)
             }
             .padding(.horizontal, 20)
             .padding(.top, 32)
@@ -66,94 +66,51 @@ struct SideStoreUploadView: View {
 
 // MARK: - Components
 
-private struct AnimatedBackdrop: View {
+private struct CalmBackdrop: View {
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color(.systemBackground), Color(.secondarySystemBackground)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+            Color(.systemGray6)
+                .ignoresSafeArea()
+
+            RadialGradient(
+                colors: [Color.black.opacity(0.05), .clear],
+                center: .center,
+                startRadius: 40,
+                endRadius: 360
             )
             .ignoresSafeArea()
-
-            Circle()
-                .fill(Color.blue.opacity(0.18))
-                .blur(radius: 90)
-                .frame(width: 420, height: 420)
-                .offset(x: -180, y: -260)
-
-            Circle()
-                .fill(Color.purple.opacity(0.2))
-                .blur(radius: 80)
-                .frame(width: 420, height: 420)
-                .offset(x: 200, y: 220)
         }
     }
 }
 
-private struct RadiantOrbit: View {
+private struct SimpleBadge: View {
     let isWorking: Bool
-    private let dotCount = 48
-    private let radius: CGFloat = 150
+    @State private var pulse = false
 
     var body: some View {
-        ZStack {
-            TimelineView(.animation) { timeline in
-                let time = timeline.date.timeIntervalSinceReferenceDate
-                let rotation = Angle.degrees((time.truncatingRemainder(dividingBy: 12)) * 35)
+        VStack(spacing: 18) {
+            ZStack {
+                Circle()
+                    .stroke(Color.primary.opacity(0.08), lineWidth: 14)
+                    .frame(width: 200, height: 200)
+                    .scaleEffect(pulse ? 1.02 : 0.98)
+                    .animation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true), value: pulse)
 
-                ZStack {
-                    ForEach(0..<dotCount, id: \.self) { index in
-                        let progress = Double(index) / Double(dotCount)
-                        let angle = Angle.degrees(progress * 360)
-                        let size = 7 + sin(time * 1.6 + progress * .pi * 2) * 1.4
-                        Circle()
-                            .fill(Color(hue: progress, saturation: 0.82, brightness: 0.98))
-                            .frame(width: size, height: size)
-                            .offset(
-                                x: cos(angle.radians) * radius,
-                                y: sin(angle.radians) * radius
-                            )
-                    }
-                }
-                .rotationEffect(rotation)
-            }
-            .blur(radius: 0.15)
-
-            Circle()
-                .strokeBorder(
-                    AngularGradient(
-                        gradient: Gradient(colors: [
-                            Color(red: 0.98, green: 0.63, blue: 0.15),
-                            Color(red: 0.98, green: 0.17, blue: 0.34),
-                            Color(red: 0.35, green: 0.28, blue: 0.96),
-                            Color(red: 0.14, green: 0.66, blue: 0.98),
-                            Color(red: 0.20, green: 0.78, blue: 0.45),
-                            Color(red: 0.98, green: 0.63, blue: 0.15)
-                        ]),
-                        center: .center
-                    ),
-                    lineWidth: 14
-                )
-                .frame(width: 240, height: 240)
-                .opacity(0.7)
-                .shadow(color: Color.blue.opacity(0.25), radius: 16, x: 0, y: 8)
-
-            Circle()
-                .fill(.ultraThinMaterial)
-                .frame(width: 170, height: 170)
-                .shadow(color: Color.black.opacity(0.15), radius: 16, x: 0, y: 6)
-                .overlay {
-                    VStack(spacing: 14) {
+                Circle()
+                    .fill(.ultraThinMaterial)
+                    .frame(width: 170, height: 170)
+                    .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: 6)
+                    .overlay {
                         SideStoreMark()
                             .frame(width: 96, height: 96)
-                            .padding(12)
-                        Text(isWorking ? "Configuring" : "Ready")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.secondary)
                     }
-                }
+            }
+
+            Text(isWorking ? "Configuring" : "Ready")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
         }
+        .onAppear { pulse = true }
     }
 }
 
@@ -167,9 +124,9 @@ private struct SideStoreMark: View {
         } else {
             ZStack {
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .fill(Color(.systemGray4))
                 Image(systemName: "arrow.down.circle.fill")
-                    .font(.system(size: 44, weight: .bold))
+                    .font(.system(size: 40, weight: .bold))
                     .foregroundStyle(.white)
             }
         }
