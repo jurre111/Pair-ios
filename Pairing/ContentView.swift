@@ -37,7 +37,7 @@ struct ContentView: View {
     @State private var sidestoreError: String? = nil
     @State private var sidestoreWorking = false
     @State private var sidestoreDisabled = false
-    @State private var sidestoreLog: [String] = []
+    @State private var showSideStoreUpload = false
 
     var body: some View {
         Group {
@@ -180,32 +180,28 @@ struct ContentView: View {
                     sidestoreStatus = nil
                     sidestoreError = nil
                         sidestoreDisabled = false
+                    showSideStoreUpload = false
                     viewModel.resetSession()
                 },
                 sidestoreStatus: sidestoreStatus,
                 sidestoreError: sidestoreError,
                 sidestoreWorking: sidestoreWorking,
                 sidestoreDisabled: sidestoreDisabled,
-                sidestoreLog: sidestoreLog,
                 onInstallSideStore: {
                     sidestoreStatus = nil
                     sidestoreError = nil
                     sidestoreDisabled = false
-                    sidestoreLog = ["Uploading pairing file…"]
                     sidestoreWorking = true
+                    showSideStoreUpload = true
                     let start = Date()
-
-                    Task { await runSideStoreProgressLog() }
 
                     Task {
                         do {
                             let message = try await viewModel.installPairingIntoSideStore()
                             sidestoreStatus = message
-                            appendSideStoreLog(message)
                         } catch {
                             let errText = (error as? PairingError)?.errorDescription ?? error.localizedDescription
                             sidestoreError = errText
-                            appendSideStoreLog(errText)
                             if errText.localizedCaseInsensitiveContains("not installed") {
                                 sidestoreDisabled = true
                             }
@@ -256,31 +252,18 @@ struct ContentView: View {
             .background(.regularMaterial)
         }
     }
-}
 
-// MARK: - SideStore Progress Helpers
-
-extension ContentView {
-    @MainActor
-    private func runSideStoreProgressLog() async {
-        let steps: [String] = [
-            "Talking to SideStore…",
-            "Transferring file…",
-            "Finishing up…"
-        ]
-        for (idx, step) in steps.enumerated() {
-            try? await Task.sleep(nanoseconds: UInt64((idx + 1)) * 500_000_000)
-            appendSideStoreLog(step)
-            if !sidestoreWorking { break }
-        }
-    }
-
-    @MainActor
-    private func appendSideStoreLog(_ line: String) {
-        sidestoreLog.append(line)
-        if sidestoreLog.count > 5 {
-            sidestoreLog.removeFirst(sidestoreLog.count - 5)
-        }
+    // SideStore upload overlay
+    .fullScreenCover(isPresented: $showSideStoreUpload) {
+        SideStoreUploadView(
+            isWorking: sidestoreWorking,
+            status: sidestoreStatus,
+            error: sidestoreError,
+            onClose: {
+                showSideStoreUpload = false
+                sidestoreWorking = false
+            }
+        )
     }
 }
 

@@ -59,16 +59,6 @@ struct PCSelectionView: View {
                     .foregroundStyle(.secondary)
                 
                 Spacer()
-                
-                if viewModel.isSearching {
-                    HStack(spacing: 6) {
-                        Image(systemName: "wifi")
-                            .foregroundStyle(.blue)
-                        Text("Searching…")
-                            .font(.caption)
-                            .foregroundStyle(.blue)
-                    }
-                }
                 Button {
                     viewModel.refreshDiscovery()
                 } label: {

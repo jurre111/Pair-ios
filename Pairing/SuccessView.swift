@@ -8,7 +8,6 @@ struct SuccessView: View {
     var sidestoreError: String? = nil
     var sidestoreWorking: Bool = false
     var sidestoreDisabled: Bool = false
-    var sidestoreLog: [String] = []
     var onInstallSideStore: (() -> Void)? = nil
     
     @State private var showCheckmark = false
@@ -65,29 +64,6 @@ struct SuccessView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(PrimaryBlueButtonStyle())
-
-                if sidestoreWorking || !sidestoreLog.isEmpty {
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack(spacing: 8) {
-                            if sidestoreWorking {
-                                ProgressView().scaleEffect(0.9)
-                            } else {
-                                Image(systemName: "checkmark.circle")
-                                    .foregroundStyle(.green)
-                            }
-                            Text("SideStore Upload")
-                                .font(.subheadline.weight(.semibold))
-                        }
-                        ForEach(Array(sidestoreLog.enumerated()), id: \.offset) { _, line in
-                            Text(line)
-                                .font(.caption.monospaced())
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(12)
-                    .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 12))
-                }
 
                 if let onInstallSideStore {
                     Button {
