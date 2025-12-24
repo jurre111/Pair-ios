@@ -22,6 +22,7 @@
 		4397F9782DCE000000000008 /* SuccessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4397F9792DCE000000000008 /* SuccessView.swift */; };
 		4397F97A2DCE000000000009 /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4397F97B2DCE000000000009 /* ErrorView.swift */; };
 		4397F97C2DCE00000000000A /* USBTroubleshootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4397F97D2DCE00000000000A /* USBTroubleshootView.swift */; };
+		A3E0F1022EEE000100000001 /* SideStoreUploadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3E0F1012EEE000100000001 /* SideStoreUploadView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -41,6 +42,7 @@
 		4397F9792DCE000000000008 /* SuccessView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuccessView.swift; sourceTree = "<group>"; };
 		4397F97B2DCE000000000009 /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
 		4397F97D2DCE00000000000A /* USBTroubleshootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = USBTroubleshootView.swift; sourceTree = "<group>"; };
+		A3E0F1012EEE000100000001 /* SideStoreUploadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SideStoreUploadView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -75,6 +77,7 @@
 			children = (
 				4397F9542DCDDA0100090799 /* App.swift */,
 				4397F9562DCDDA0100090799 /* ContentView.swift */,
+				A3E0F1012EEE000100000001 /* SideStoreUploadView.swift */,
 				4397F96A2DCE000000000001 /* OnboardingView.swift */,
 				4397F96B2DCE000000000002 /* SettingsView.swift */,
 				4397F9752DCE000000000006 /* PCSelectionView.swift */,
@@ -175,6 +178,7 @@
 				4397F9782DCE000000000008 /* SuccessView.swift in Sources */,
 				4397F97A2DCE000000000009 /* ErrorView.swift in Sources */,
 				4397F97C2DCE00000000000A /* USBTroubleshootView.swift in Sources */,
+				A3E0F1022EEE000100000001 /* SideStoreUploadView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

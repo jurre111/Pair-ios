@@ -1,3 +1,4 @@
+import UIKit
 import SwiftUI
 
 struct SideStoreUploadView: View {
@@ -6,70 +7,39 @@ struct SideStoreUploadView: View {
     let error: String?
     var onClose: () -> Void
 
-    @State private var pulse = false
-    @State private var rotation: Double = 0
-
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color.indigo.opacity(0.25), Color.blue.opacity(0.15)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            AnimatedBackdrop()
+            VStack(spacing: 32) {
+                Spacer(minLength: 20)
 
-            VStack(spacing: 28) {
-                Spacer()
-
-                ZStack {
-                    Circle()
-                        .fill(Color.white.opacity(0.15))
-                        .frame(width: 220, height: 220)
-                        .scaleEffect(pulse ? 1.08 : 0.94)
-                        .opacity(pulse ? 1 : 0.6)
-                        .animation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true), value: pulse)
-
-                    Circle()
-                        .stroke(Color.white.opacity(0.4), lineWidth: 2)
-                        .frame(width: 180, height: 180)
-                        .rotationEffect(.degrees(rotation))
-                        .animation(.linear(duration: 3).repeatForever(autoreverses: false), value: rotation)
-
-                    VStack(spacing: 10) {
-                        Image(systemName: isWorking ? "arrow.down.circle.fill" : (error == nil ? "checkmark.circle.fill" : "xmark.octagon.fill"))
-                            .font(.system(size: 72, weight: .semibold))
-                            .foregroundStyle(error == nil ? .white : .red)
-                            .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 6)
-                        Text("SideStore")
-                            .font(.title2.weight(.bold))
-                            .foregroundStyle(.white)
-                    }
-                }
+                RadiantOrbit(isWorking: isWorking)
+                    .frame(width: 360, height: 360)
 
                 VStack(spacing: 10) {
-                    Text(isWorking ? "Uploading to SideStore…" : (error == nil ? "Uploaded" : "Upload Failed"))
+                    Text(isWorking ? "Uploading to SideStore" : (error == nil ? "Uploaded to SideStore" : "Upload Failed"))
                         .font(.title3.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.primary)
                         .transition(.opacity)
 
                     if let status, !isWorking, error == nil {
                         Text(status)
                             .font(.body)
-                            .foregroundStyle(.white.opacity(0.85))
                             .multilineTextAlignment(.center)
+                            .foregroundStyle(.secondary)
                             .padding(.horizontal, 24)
                     }
+
                     if let error {
                         Text(error)
-                            .font(.body)
-                            .foregroundStyle(.red.opacity(0.9))
+                            .font(.body.weight(.semibold))
                             .multilineTextAlignment(.center)
+                            .foregroundStyle(.red)
                             .padding(.horizontal, 24)
                     }
                 }
-                .padding(.top, 4)
 
-                Spacer()
+                Spacer(minLength: 12)
 
                 Button {
                     onClose()
@@ -79,18 +49,129 @@ struct SideStoreUploadView: View {
                 }
                 .buttonStyle(PrimaryBlueButtonStyle())
                 .padding(.horizontal, 20)
-                .padding(.bottom, 32)
-                .disabled(isWorking) // avoid cancel mid-upload to keep flow simple
+                .padding(.bottom, 28)
+                .disabled(isWorking)
+                .opacity(isWorking ? 0.75 : 1)
             }
-            .padding()
-        }
-        .onAppear {
-            pulse = true
-            rotation = 360
+            .padding(.horizontal, 20)
+            .padding(.top, 32)
+            .padding(.bottom, 8)
         }
     }
 }
 
 #Preview {
     SideStoreUploadView(isWorking: true, status: nil, error: nil, onClose: {})
+}
+
+// MARK: - Components
+
+private struct AnimatedBackdrop: View {
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [Color(.systemBackground), Color(.secondarySystemBackground)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+
+            Circle()
+                .fill(Color.blue.opacity(0.18))
+                .blur(radius: 90)
+                .frame(width: 420, height: 420)
+                .offset(x: -180, y: -260)
+
+            Circle()
+                .fill(Color.purple.opacity(0.2))
+                .blur(radius: 80)
+                .frame(width: 420, height: 420)
+                .offset(x: 200, y: 220)
+        }
+    }
+}
+
+private struct RadiantOrbit: View {
+    let isWorking: Bool
+    private let dotCount = 48
+    private let radius: CGFloat = 150
+
+    var body: some View {
+        ZStack {
+            TimelineView(.animation) { timeline in
+                let time = timeline.date.timeIntervalSinceReferenceDate
+                let rotation = Angle.degrees((time.truncatingRemainder(dividingBy: 12)) * 35)
+
+                ZStack {
+                    ForEach(0..<dotCount, id: \.self) { index in
+                        let progress = Double(index) / Double(dotCount)
+                        let angle = Angle.degrees(progress * 360)
+                        let size = 7 + sin(time * 1.6 + progress * .pi * 2) * 1.4
+                        Circle()
+                            .fill(Color(hue: progress, saturation: 0.82, brightness: 0.98))
+                            .frame(width: size, height: size)
+                            .offset(
+                                x: cos(angle.radians) * radius,
+                                y: sin(angle.radians) * radius
+                            )
+                    }
+                }
+                .rotationEffect(rotation)
+            }
+            .blur(radius: 0.15)
+
+            Circle()
+                .strokeBorder(
+                    AngularGradient(
+                        gradient: Gradient(colors: [
+                            Color(red: 0.98, green: 0.63, blue: 0.15),
+                            Color(red: 0.98, green: 0.17, blue: 0.34),
+                            Color(red: 0.35, green: 0.28, blue: 0.96),
+                            Color(red: 0.14, green: 0.66, blue: 0.98),
+                            Color(red: 0.20, green: 0.78, blue: 0.45),
+                            Color(red: 0.98, green: 0.63, blue: 0.15)
+                        ]),
+                        center: .center
+                    ),
+                    lineWidth: 14
+                )
+                .frame(width: 240, height: 240)
+                .opacity(0.7)
+                .shadow(color: Color.blue.opacity(0.25), radius: 16, x: 0, y: 8)
+
+            Circle()
+                .fill(.ultraThinMaterial)
+                .frame(width: 170, height: 170)
+                .shadow(color: Color.black.opacity(0.15), radius: 16, x: 0, y: 6)
+                .overlay {
+                    VStack(spacing: 14) {
+                        SideStoreMark()
+                            .frame(width: 96, height: 96)
+                            .padding(12)
+                        Text(isWorking ? "Configuring" : "Ready")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+        }
+    }
+}
+
+private struct SideStoreMark: View {
+    var body: some View {
+        if UIImage(named: "SideStoreLogo") != nil {
+            Image("SideStoreLogo")
+                .resizable()
+                .scaledToFit()
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        } else {
+            ZStack {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing))
+                Image(systemName: "arrow.down.circle.fill")
+                    .font(.system(size: 44, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+        }
+    }
 }
