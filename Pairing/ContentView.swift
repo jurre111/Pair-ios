@@ -57,6 +57,17 @@ struct ContentView: View {
             }
         }
         .animation(.spring(response: 0.5, dampingFraction: 0.8), value: isOnboardingComplete)
+        .fullScreenCover(isPresented: $showSideStoreUpload) {
+            SideStoreUploadView(
+                isWorking: sidestoreWorking,
+                status: sidestoreStatus,
+                error: sidestoreError,
+                onClose: {
+                    showSideStoreUpload = false
+                    sidestoreWorking = false
+                }
+            )
+        }
     }
     
     @ViewBuilder
@@ -251,19 +262,6 @@ struct ContentView: View {
             .padding(.vertical, 12)
             .background(.regularMaterial)
         }
-    }
-
-    // SideStore upload overlay
-    .fullScreenCover(isPresented: $showSideStoreUpload) {
-        SideStoreUploadView(
-            isWorking: sidestoreWorking,
-            status: sidestoreStatus,
-            error: sidestoreError,
-            onClose: {
-                showSideStoreUpload = false
-                sidestoreWorking = false
-            }
-        )
     }
 }
 
