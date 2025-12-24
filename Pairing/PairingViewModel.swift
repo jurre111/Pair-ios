@@ -255,9 +255,9 @@ class PairingViewModel: ObservableObject {
         }
     }
     
-    private func requestPairing(pc: DiscoveredPC) async {
+    private func requestPairing(pc: DiscoveredPC, overrideTargetUDID: String? = nil, didRetryWithServerUDID: Bool = false) async {
         let deviceName = UIDevice.current.name
-        let udid = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
+        let udid = overrideTargetUDID ?? UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
         
         let requestBody: [String: Any] = [
             "udid": udid,
@@ -298,7 +298,20 @@ class PairingViewModel: ObservableObject {
             // Handle error responses
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let errorMsg = json["error"] as? String {
-                if httpResponse.statusCode == 503 || errorMsg.localizedCaseInsensitiveContains("USB") {
+                if let connected = json["connected_devices"] as? [[String: Any]], !connected.isEmpty {
+                    let connectedUdids = connected.compactMap { $0["udid"] as? String }
+                    let connectedNames = connected.compactMap { $0["name"] as? String }
+
+                    // If exactly one device is connected and we haven't retried with it, retry automatically using that UDID.
+                    if connectedUdids.count == 1 && !didRetryWithServerUDID {
+                        await requestPairing(pc: pc, overrideTargetUDID: connectedUdids[0], didRetryWithServerUDID: true)
+                        return
+                    }
+
+                    // Multiple devices: ask user to disconnect/select.
+                    let deviceList = connectedNames.isEmpty ? connectedUdids.joined(separator: ", ") : connectedNames.joined(separator: ", ")
+                    state = .error(.serverError("Multiple USB devices detected. Disconnect others or select the right one: \(deviceList)"))
+                } else if httpResponse.statusCode == 503 || errorMsg.localizedCaseInsensitiveContains("USB") {
                     state = .awaitingUSB(pcName: pc.name, message: errorMsg)
                     startUSBPolling(pc: pc, udid: udid)
                 } else {

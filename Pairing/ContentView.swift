@@ -195,19 +195,17 @@ struct ContentView: View {
                     sidestoreWorking = true
                     let start = Date()
 
-                    Task {
-                        await runSideStoreProgressLog()
-                    }
+                    Task { await runSideStoreProgressLog() }
 
                     Task {
                         do {
                             let message = try await viewModel.installPairingIntoSideStore()
                             sidestoreStatus = message
-                            sidestoreLog.append(message)
+                            appendSideStoreLog(message)
                         } catch {
                             let errText = (error as? PairingError)?.errorDescription ?? error.localizedDescription
                             sidestoreError = errText
-                            sidestoreLog.append(errText)
+                            appendSideStoreLog(errText)
                             if errText.localizedCaseInsensitiveContains("not installed") {
                                 sidestoreDisabled = true
                             }
@@ -272,8 +270,16 @@ extension ContentView {
         ]
         for (idx, step) in steps.enumerated() {
             try? await Task.sleep(nanoseconds: UInt64((idx + 1)) * 500_000_000)
-            sidestoreLog.append(step)
+            appendSideStoreLog(step)
             if !sidestoreWorking { break }
+        }
+    }
+
+    @MainActor
+    private func appendSideStoreLog(_ line: String) {
+        sidestoreLog.append(line)
+        if sidestoreLog.count > 5 {
+            sidestoreLog.removeFirst(sidestoreLog.count - 5)
         }
     }
 }
