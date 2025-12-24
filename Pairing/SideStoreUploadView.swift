@@ -104,16 +104,33 @@ struct SideStoreUploadView: View {
 
 // MARK: - Components
 
+private struct CalmBackdrop: View {
+    var body: some View {
+        ZStack {
+            Color(.systemGray6)
+                .ignoresSafeArea()
+
+            RadialGradient(
+                colors: [Color.black.opacity(0.05), .clear],
+                center: .center,
+                startRadius: 40,
+                endRadius: 360
+            )
+            .ignoresSafeArea()
+        }
+    }
+}
+
 private struct SimpleBadge: View {
     let isWorking: Bool
     let isError: Bool
     let progress: CGFloat
     let showCheck: Bool
     let markScale: CGFloat
-            Color(.systemGray6)
-                .ignoresSafeArea()
 
-            RadialGradient(
+    var body: some View {
+        VStack(spacing: 18) {
+            ZStack {
                 Circle()
                     .stroke(Color.primary.opacity(0.08), lineWidth: 14)
                     .frame(width: 200, height: 200)
@@ -144,34 +161,17 @@ private struct SimpleBadge: View {
                             }
                         }
                     }
-    var body: some View {
-        VStack(spacing: 18) {
-            ZStack {
-                Circle()
+            }
+
+            Text(isWorking ? "Configuring" : (isError ? "Failed" : "Ready"))
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(isError ? .red : .secondary)
-                    .frame(width: 200, height: 200)
+        }
     }
 
     private var ringColor: Color {
         if isError { return .red }
         return isWorking ? .blue : .green
-                    .animation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true), value: pulse)
-
-                Circle()
-                    .fill(.ultraThinMaterial)
-                    .frame(width: 170, height: 170)
-                    .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: 6)
-                    .overlay {
-                        SideStoreMark()
-                            .frame(width: 96, height: 96)
-                    }
-            }
-
-            Text(isWorking ? "Configuring" : "Ready")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-        }
-        .onAppear { pulse = true }
     }
 }
 
