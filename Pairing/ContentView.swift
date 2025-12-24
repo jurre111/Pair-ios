@@ -37,6 +37,7 @@ struct ContentView: View {
     @State private var sidestoreError: String? = nil
     @State private var sidestoreWorking = false
     @State private var sidestoreDisabled = false
+    @State private var sidestoreLog: [String] = []
 
     var body: some View {
         Group {
@@ -185,21 +186,37 @@ struct ContentView: View {
                 sidestoreError: sidestoreError,
                 sidestoreWorking: sidestoreWorking,
                 sidestoreDisabled: sidestoreDisabled,
+                sidestoreLog: sidestoreLog,
                 onInstallSideStore: {
                     sidestoreStatus = nil
                     sidestoreError = nil
                     sidestoreDisabled = false
+                    sidestoreLog = ["Uploading pairing file…"]
                     sidestoreWorking = true
+                    let start = Date()
+
+                    Task {
+                        await runSideStoreProgressLog()
+                    }
+
                     Task {
                         do {
                             let message = try await viewModel.installPairingIntoSideStore()
                             sidestoreStatus = message
+                            sidestoreLog.append(message)
                         } catch {
                             let errText = (error as? PairingError)?.errorDescription ?? error.localizedDescription
                             sidestoreError = errText
+                            sidestoreLog.append(errText)
                             if errText.localizedCaseInsensitiveContains("not installed") {
                                 sidestoreDisabled = true
                             }
+                        }
+
+                        // Ensure animation lasts at least 2 seconds
+                        let elapsed = Date().timeIntervalSince(start)
+                        if elapsed < 2 {
+                            try? await Task.sleep(nanoseconds: UInt64((2 - elapsed) * 1_000_000_000))
                         }
                         sidestoreWorking = false
                     }
@@ -239,6 +256,24 @@ struct ContentView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .background(.regularMaterial)
+        }
+    }
+}
+
+// MARK: - SideStore Progress Helpers
+
+extension ContentView {
+    @MainActor
+    private func runSideStoreProgressLog() async {
+        let steps: [String] = [
+            "Talking to SideStore…",
+            "Transferring file…",
+            "Finishing up…"
+        ]
+        for (idx, step) in steps.enumerated() {
+            try? await Task.sleep(nanoseconds: UInt64((idx + 1)) * 500_000_000)
+            sidestoreLog.append(step)
+            if !sidestoreWorking { break }
         }
     }
 }

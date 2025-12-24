@@ -95,15 +95,13 @@ struct PCSelectionView: View {
     private var emptyStateCard: some View {
         VStack(spacing: 12) {
             if viewModel.isSearching {
-                HStack(spacing: 6) {
-                    ForEach(0..<3) { idx in
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(Color.blue)
-                            .frame(width: 6, height: pulseOpacity ? CGFloat(10 + idx * 4) : CGFloat(18 + idx * 4))
-                            .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true).delay(0.08 * Double(idx)), value: pulseOpacity)
-                    }
-                }
-                .padding(.top, 4)
+                Image(systemName: "wifi")
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundStyle(.blue)
+                    .scaleEffect(pulseOpacity ? 1.05 : 0.9)
+                    .opacity(pulseOpacity ? 1.0 : 0.5)
+                    .animation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true), value: pulseOpacity)
+                    .padding(.top, 4)
             } else {
                 Image(systemName: "wifi.slash")
                     .font(.system(size: 32, weight: .light))
